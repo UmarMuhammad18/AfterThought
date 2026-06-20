@@ -1,25 +1,24 @@
 {
   "manifest_version": 3,
-  "name": "AfterThought Recorder",
+  "name": "AfterThought",
   "version": "1.0.0",
-  "description": "Capture audio from the active tab for AfterThought transcription.",
+  "description": "AI meeting assistant that records and uploads audio for processing.",
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AfterThought"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "permissions": [
-    "activeTab",
     "tabs",
+    "activeTab",
     "storage",
     "microphone"
   ],
   "host_permissions": [
-    "http://localhost:3000/*"
-  ],
-  "background": {
-    "service_worker": "background.js"
-  },
-  "action": {
-    "default_popup": "popup.html",
-    "default_title": "AfterThought Recorder"
-  },
-  "content_security_policy": {
-    "extension_pages": "script-src 'self'; object-src 'self'"
-  }
+    "http://localhost:3000/*",
+    "https://afterthought.vercel.app/*"
+  ]
 }

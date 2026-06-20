@@ -1,76 +1,60 @@
-import { NextResponse } from 'next/server'
-import { fakeTranscript } from '@/lib/fakeData'
+import { NextResponse } from "next/server"
+import { supabaseAdmin } from "@/lib/supabase"
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-}
+export async function POST(req: Request) {
+  const supabase = supabaseAdmin()
 
-export async function OPTIONS() {
-  return new NextResponse(null, {
-    status: 200,
-    headers: corsHeaders,
-  })
-}
-
-export async function POST(request: Request) {
   try {
-    const contentType = request.headers.get('content-type') || ''
+    const audio = await req.arrayBuffer()
 
-    if (contentType.includes('application/json')) {
-      const body = await request.json()
-      console.log('Received JSON transcription text from desktop companion:', body)
+    if (!audio) {
       return NextResponse.json(
-        {
-          ok: true,
-          message: 'Transcription segment appended.',
-          transcript: body.text || 'No text received',
-        },
-        { headers: corsHeaders },
+        { ok: false, error: "No audio received" },
+        { status: 400 }
       )
     }
 
-    if (contentType.includes('audio/webm') || contentType.includes('multipart/form-data')) {
-      const audioBlob = contentType.includes('audio/webm')
-        ? await request.blob()
-        : (await request.formData()).get('audio')
+    const id = crypto.randomUUID()
 
-      console.log(
-        'Received audio payload from extension:',
-        audioBlob instanceof Blob ? 'blob present' : 'missing blob',
-      )
+    // Temporary fake transcript
+    const segments = [
+      { speaker: "Speaker 1", text: "Welcome to the meeting." },
+      { speaker: "Speaker 2", text: "Let's begin with the agenda." },
+      { speaker: "Speaker 1", text: "We need to finalize the project timeline." }
+    ]
 
+    const summary = "This is a placeholder summary generated for the meeting."
+
+    const actionItems = [
+      "Follow up with the client",
+      "Prepare the proposal",
+      "Schedule next meeting"
+    ]
+
+    const { error } = await supabase
+      .from("meetings")
+      .insert({
+        id,
+        title: "New Recording",
+        summary,
+        action_items: actionItems,
+        segments,
+      })
+
+    if (error) {
+      console.error(error)
       return NextResponse.json(
-        {
-          ok: true,
-          message: 'Audio received and transcribed successfully.',
-          transcript: fakeTranscript.map((line) => `${line.speaker}: ${line.text}`).join('\n'),
-          segments: fakeTranscript,
-        },
-        { headers: corsHeaders },
+        { ok: false, error: error.message },
+        { status: 500 }
       )
     }
 
+    return NextResponse.json({ ok: true, id })
+  } catch (err) {
+    console.error("Transcribe API error:", err)
     return NextResponse.json(
-      {
-        ok: true,
-        message: 'Request received.',
-        transcript: 'No specific format processed.',
-      },
-      { headers: corsHeaders },
-    )
-  } catch (error: any) {
-    console.error('Error in transcribe route:', error)
-    return NextResponse.json(
-      {
-        ok: false,
-        error: error.message,
-      },
-      {
-        status: 500,
-        headers: corsHeaders,
-      },
+      { ok: false, error: "Server error" },
+      { status: 500 }
     )
   }
 }

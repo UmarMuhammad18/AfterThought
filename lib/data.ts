@@ -1,78 +1,11 @@
 export type Meeting = {
   id: string
   title: string
-  date: string
-  time: string
-  participants: string[]
-  duration: string
-  topic: string
-  status: 'analyzed' | 'processing'
-  unread?: boolean
+  summary: string
+  action_items: string[]
+  segments: { speaker: string; text: string }[]
+  created_at: string
 }
-
-export const meetings: Meeting[] = [
-  {
-    id: 'q3-product-strategy',
-    title: 'Q3 Product Strategy Sync',
-    date: 'Jun 18, 2026',
-    time: '10:00 AM',
-    participants: ['Maya Chen', 'Devon Park', 'Lina Ortiz', 'Sam Reed'],
-    duration: '52 min',
-    topic: 'Roadmap',
-    status: 'analyzed',
-    unread: true,
-  },
-  {
-    id: 'design-review',
-    title: 'Liquid Glass Design Review',
-    date: 'Jun 17, 2026',
-    time: '2:30 PM',
-    participants: ['Lina Ortiz', 'Theo Walsh', 'Maya Chen'],
-    duration: '38 min',
-    topic: 'Design',
-    status: 'analyzed',
-  },
-  {
-    id: 'eng-standup',
-    title: 'Platform Engineering Standup',
-    date: 'Jun 17, 2026',
-    time: '9:15 AM',
-    participants: ['Devon Park', 'Sam Reed', 'Priya Nair', 'Theo Walsh'],
-    duration: '24 min',
-    topic: 'Engineering',
-    status: 'analyzed',
-  },
-  {
-    id: 'customer-discovery',
-    title: 'Customer Discovery — Northwind',
-    date: 'Jun 16, 2026',
-    time: '11:00 AM',
-    participants: ['Sam Reed', 'Priya Nair'],
-    duration: '46 min',
-    topic: 'Research',
-    status: 'analyzed',
-  },
-  {
-    id: 'gtm-planning',
-    title: 'Go-To-Market Planning',
-    date: 'Jun 15, 2026',
-    time: '4:00 PM',
-    participants: ['Maya Chen', 'Devon Park', 'Priya Nair', 'Lina Ortiz', 'Theo Walsh'],
-    duration: '1h 08min',
-    topic: 'Marketing',
-    status: 'analyzed',
-  },
-  {
-    id: 'weekly-leadership',
-    title: 'Weekly Leadership Review',
-    date: 'Jun 12, 2026',
-    time: '8:30 AM',
-    participants: ['Maya Chen', 'Devon Park'],
-    duration: '41 min',
-    topic: 'Leadership',
-    status: 'processing',
-  },
-]
 
 export type SummaryItem = {
   category: 'Decisions' | 'Deadlines' | 'Action Items' | 'Blockers' | 'Topics'

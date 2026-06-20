@@ -1,13 +1,18 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AfterThought Recorder</title>
+    <title>AfterThought</title>
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="popup.tsx"></script>
+    <h1 class="title">AfterThought</h1>
+    <p class="subtitle">Ready to record your meeting?</p>
+
+    <button id="startBtn">Start recording this tab</button>
+
+    <p id="status"></p>
+
+    <script src="popup.js"></script>
   </body>
 </html>

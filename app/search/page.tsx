@@ -7,6 +7,14 @@ import { SearchBar } from '@/components/search-bar'
 import { GlassPanel } from '@/components/glass-panel'
 import { examplePrompts } from '@/lib/data'
 
+type SearchResult = {
+  type: string
+  text: string
+  speaker?: string
+  category?: string
+  meetingId?: string
+}
+
 const sampleAnswer = {
   text: 'The team decided on a usage-based pricing tier layered on top of a flat team plan. This tested best with the Northwind account during customer discovery, and pricing will be revisited before the public launch readiness review on Jul 15.',
   highlights: ['usage-based pricing tier', 'flat team plan', 'Jul 15'],
@@ -43,6 +51,30 @@ function highlight(text: string, terms: string[]) {
 export default function SearchPage() {
   const [query, setQuery] = useState('')
   const [submitted, setSubmitted] = useState(false)
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+
+  async function runSearch(value: string) {
+    if (!value.trim()) return
+
+    setQuery(value)
+    setSubmitted(true)
+    setIsSearching(true)
+
+    try {
+      const response = await fetch(`/api/search?q=${encodeURIComponent(value)}`)
+      const data = await response.json()
+      const results = Array.isArray(data.results)
+        ? (data.results as SearchResult[])
+        : []
+      setSearchResults(results)
+    } catch (error) {
+      console.error('Search request failed', error)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }
 
   return (
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
@@ -64,10 +96,7 @@ export default function SearchPage() {
         autoFocus
         value={query}
         onChange={setQuery}
-        onSubmit={(v) => {
-          setQuery(v)
-          setSubmitted(true)
-        }}
+        onSubmit={(v) => runSearch(v)}
       />
 
       {!submitted && (
@@ -77,10 +106,7 @@ export default function SearchPage() {
             {examplePrompts.map((p) => (
               <button
                 key={p}
-                onClick={() => {
-                  setQuery(p)
-                  setSubmitted(true)
-                }}
+                onClick={() => runSearch(p)}
                 className="glass rounded-full px-4 py-2 text-sm text-muted-foreground transition-colors hover:text-foreground"
               >
                 {p}
@@ -99,9 +125,45 @@ export default function SearchPage() {
               AI Answer
             </div>
             <p className="text-pretty leading-relaxed text-foreground">
-              {highlight(sampleAnswer.text, sampleAnswer.highlights)}
+              {isSearching
+                ? 'Searching your meeting memory…'
+                : highlight(sampleAnswer.text, sampleAnswer.highlights)}
             </p>
           </GlassPanel>
+
+          {searchResults.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <span className="text-sm text-muted-foreground">Related results</span>
+              <div className="flex flex-col gap-2">
+                {searchResults.map((result, index) => (
+                  <Link
+                    key={`${result.text}-${index}`}
+                    href={result.meetingId ? `/meeting/${result.meetingId}` : '/'}
+                    className="glass rounded-2xl p-4 transition-all hover:border-primary/30"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="text-xs uppercase tracking-wide text-primary">
+                        {result.type}
+                      </span>
+                      {result.speaker && (
+                        <span className="text-xs text-muted-foreground">
+                          {result.speaker}
+                        </span>
+                      )}
+                    </div>
+                    <p className="mt-2 text-sm leading-relaxed text-foreground">
+                      {result.text}
+                    </p>
+                    {result.category && (
+                      <span className="mt-2 inline-block text-xs text-muted-foreground">
+                        {result.category}
+                      </span>
+                    )}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Citations */}
           <div className="flex flex-col gap-3">

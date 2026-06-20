@@ -11,9 +11,9 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'AftrThought — AI Meeting Memory Engine',
+  title: 'AfterThought — AI Meeting Memory Engine',
   description:
-    'AftrThought remembers every meeting for you — searchable summaries, decisions, action items, and insights powered by AI.',
+    'AfterThought remembers every meeting for you — searchable summaries, decisions, action items, and insights powered by AI.',
   generator: 'v0.app',
 }
 

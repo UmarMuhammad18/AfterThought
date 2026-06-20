@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { DraggableBubble } from './components/DraggableBubble';
 import { ExpandedAssistantPanel } from './components/ExpandedAssistantPanel';
 
-export function AssistantApp() {
+export function App() {
   const [expanded, setExpanded] = useState(false);
 
   return (

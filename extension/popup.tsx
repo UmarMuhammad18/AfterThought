@@ -1,140 +1,77 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './popup.css';
 
-type ChromeTabCapture = {
-  capture: (
-    options: { audio: boolean; video: boolean },
-    callback: (stream: MediaStream | null) => void,
-  ) => void;
+type PopupMessage = {
+  type?: string;
+  isRecording?: boolean;
+  error?: string;
+  ok?: boolean;
 };
 
-type ChromeWindow = Window & {
-  chrome?: {
-    tabCapture?: ChromeTabCapture;
+type RuntimeLike = {
+  runtime?: {
+    onMessage?: {
+      addListener?: (callback: (message: PopupMessage) => void) => void;
+      removeListener?: (callback: (message: PopupMessage) => void) => void;
+    };
+    sendMessage?: (message: { type: string }) => void;
   };
-  webkitAudioContext?: typeof AudioContext;
 };
-
-const chromeApi = (globalThis as unknown as ChromeWindow).chrome;
 
 function Popup() {
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState('Ready');
-  
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    // Cleanup on unmount
-    return () => {
-      stopRecordingSession();
+    const runtime =
+      (globalThis as { chrome?: RuntimeLike; browser?: RuntimeLike }).chrome ||
+      (globalThis as { chrome?: RuntimeLike; browser?: RuntimeLike }).browser;
+
+    const listener = (message: PopupMessage) => {
+      if (message?.type === 'recording-state') {
+        setIsRecording(Boolean(message.isRecording));
+        setStatus(
+          message.error
+            ? `Error: ${message.error}`
+            : message.isRecording
+              ? 'Recording…'
+              : 'Ready',
+        );
+      }
+
+      if (message?.type === 'upload-result') {
+        setStatus(
+          message.ok ? 'Upload complete' : `Upload failed: ${message.error || 'Unknown error'}`,
+        );
+      }
     };
+
+    if (runtime?.runtime?.onMessage?.addListener) {
+      runtime.runtime.onMessage.addListener(listener);
+      return () => {
+        if (runtime.runtime?.onMessage?.removeListener) {
+          runtime.runtime.onMessage.removeListener(listener);
+        }
+      };
+    }
   }, []);
 
-  const startRecordingSession = async () => {
+  const sendMessage = (type: string) => {
+    const runtime =
+      (globalThis as { chrome?: RuntimeLike; browser?: RuntimeLike }).chrome ||
+      (globalThis as { chrome?: RuntimeLike; browser?: RuntimeLike }).browser;
+    runtime?.runtime?.sendMessage?.({ type });
+  };
+
+  const startRecordingSession = () => {
     setStatus('Starting…');
-    try {
-      // 1. Try to capture tab audio
-      if (chromeApi?.tabCapture) {
-        chromeApi.tabCapture.capture({ audio: true, video: false }, async (stream) => {
-          if (!stream) {
-            console.warn('Tab capture failed or denied. Falling back to mic capture...');
-            await startMicrophoneCapture();
-            return;
-          }
-          setupRecorder(stream);
-        });
-      } else {
-        await startMicrophoneCapture();
-      }
-    } catch (err: any) {
-      console.error('Failed to capture audio', err);
-      setStatus(`Error: ${err.message || 'Capture failed'}`);
-      setIsRecording(false);
-    }
-  };
-
-  const startMicrophoneCapture = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      setupRecorder(stream);
-    } catch (err: any) {
-      console.error('Failed to capture mic audio', err);
-      setStatus(`Permission denied / Mic not found`);
-      setIsRecording(false);
-    }
-  };
-
-  const setupRecorder = (stream: MediaStream) => {
-    streamRef.current = stream;
-
-    // Route tab/mic audio to speaker destination so sound continues playing for the user
-    try {
-      const AudioContextClass =
-        window.AudioContext || (window as ChromeWindow).webkitAudioContext;
-
-      if (AudioContextClass) {
-        const audioCtx = new AudioContextClass();
-        audioContextRef.current = audioCtx;
-        const source = audioCtx.createMediaStreamSource(stream);
-        source.connect(audioCtx.destination);
-      }
-    } catch (err) {
-      console.warn('Could not route audio to speaker output:', err);
-    }
-
-    const recorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-    mediaRecorderRef.current = recorder;
-    const chunks: Blob[] = [];
-
-    recorder.ondataavailable = (event) => {
-      if (event.data && event.data.size > 0) {
-        chunks.push(event.data);
-      }
-    };
-
-    recorder.onstop = async () => {
-      setStatus('Processing transcription…');
-      const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-      
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      try {
-        const response = await fetch('http://localhost:3000/api/transcribe', {
-          method: 'POST',
-          body: formData,
-        });
-        const data = await response.json();
-        if (data.ok) {
-          setStatus('Transcription complete!');
-        } else {
-          setStatus(`Failed: ${data.error || 'Server error'}`);
-        }
-      } catch (err) {
-        console.error('API upload failed', err);
-        setStatus('Failed to upload recording');
-      }
-
-      // Cleanup tracks
-      stream.getTracks().forEach((track) => track.stop());
-      if (audioContextRef.current) {
-        audioContextRef.current.close().catch(() => {});
-      }
-    };
-
-    recorder.start();
-    setIsRecording(true);
-    setStatus('Recording active tab…');
+    sendMessage('start-recording');
   };
 
   const stopRecordingSession = () => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-      mediaRecorderRef.current.stop();
-    }
-    setIsRecording(false);
+    setStatus('Stopping…');
+    sendMessage('stop-recording');
   };
 
   return (

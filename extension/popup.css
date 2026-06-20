@@ -1,16 +1,10 @@
-:root {
-  font-family: Inter, 'Segoe UI', sans-serif;
-  background: #0f1117;
-  color: #f5f7ff;
-}
-
 body {
   margin: 0;
-  width: 320px;
-  min-height: 220px;
-  background:
-    radial-gradient(circle at top, rgba(95, 84, 255, 0.18), transparent 25%),
-    #0f1117;
+  width: 300px;
+  min-height: 180px;
+  background: #0f1117;
+  font-family: Inter, 'Segoe UI', sans-serif;
+  color: #eef2ff;
 }
 
 #root {
@@ -18,10 +12,12 @@ body {
 }
 
 .popup-shell {
-  padding: 18px;
+  box-sizing: border-box;
+  width: 100%;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
 }
 
 .popup-header {
@@ -33,14 +29,14 @@ body {
 .brand {
   font-size: 0.95rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  color: #f8f9ff;
 }
 
 .status-dot {
   width: 10px;
   height: 10px;
   border-radius: 999px;
-  background: #5b5f73;
+  background: #6b7280;
 }
 
 .status-dot.recording {
@@ -50,32 +46,33 @@ body {
 
 .status-text {
   margin: 0;
-  color: #b9bfd6;
   font-size: 0.9rem;
+  color: #cbd5e1;
 }
 
 .button-group {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .button {
+  appearance: none;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   padding: 10px 12px;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
 }
 
 .button.primary {
   background: linear-gradient(90deg, #8b5cf6, #6d5dfc);
-  color: white;
+  color: #fff;
 }
 
 .button.secondary {
-  background: #171b2d;
+  background: #1b2035;
   color: #eef2ff;
 }
 

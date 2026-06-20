@@ -1,0 +1,85 @@
+:root {
+  font-family: Inter, 'Segoe UI', sans-serif;
+  background: #0f1117;
+  color: #f5f7ff;
+}
+
+body {
+  margin: 0;
+  width: 320px;
+  min-height: 220px;
+  background:
+    radial-gradient(circle at top, rgba(95, 84, 255, 0.18), transparent 25%),
+    #0f1117;
+}
+
+#root {
+  width: 100%;
+}
+
+.popup-shell {
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.popup-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.brand {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: #5b5f73;
+}
+
+.status-dot.recording {
+  background: #ff4d6d;
+  box-shadow: 0 0 0 6px rgba(255, 77, 109, 0.12);
+}
+
+.status-text {
+  margin: 0;
+  color: #b9bfd6;
+  font-size: 0.9rem;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.button {
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.button.primary {
+  background: linear-gradient(90deg, #8b5cf6, #6d5dfc);
+  color: white;
+}
+
+.button.secondary {
+  background: #171b2d;
+  color: #eef2ff;
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

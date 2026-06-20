@@ -2,6 +2,22 @@ import React, { useEffect, useState, useRef } from 'react';
 import { createRoot } from 'react-dom/client';
 import './popup.css';
 
+type ChromeTabCapture = {
+  capture: (
+    options: { audio: boolean; video: boolean },
+    callback: (stream: MediaStream | null) => void,
+  ) => void;
+};
+
+type ChromeWindow = Window & {
+  chrome?: {
+    tabCapture?: ChromeTabCapture;
+  };
+  webkitAudioContext?: typeof AudioContext;
+};
+
+const chromeApi = (globalThis as unknown as ChromeWindow).chrome;
+
 function Popup() {
   const [isRecording, setIsRecording] = useState(false);
   const [status, setStatus] = useState('Ready');
@@ -21,8 +37,8 @@ function Popup() {
     setStatus('Starting…');
     try {
       // 1. Try to capture tab audio
-      if (typeof chrome !== 'undefined' && chrome.tabCapture) {
-        chrome.tabCapture.capture({ audio: true, video: false }, async (stream) => {
+      if (chromeApi?.tabCapture) {
+        chromeApi.tabCapture.capture({ audio: true, video: false }, async (stream) => {
           if (!stream) {
             console.warn('Tab capture failed or denied. Falling back to mic capture...');
             await startMicrophoneCapture();
@@ -56,11 +72,15 @@ function Popup() {
 
     // Route tab/mic audio to speaker destination so sound continues playing for the user
     try {
-      const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-      const audioCtx = new AudioContextClass();
-      audioContextRef.current = audioCtx;
-      const source = audioCtx.createMediaStreamSource(stream);
-      source.connect(audioCtx.destination);
+      const AudioContextClass =
+        window.AudioContext || (window as ChromeWindow).webkitAudioContext;
+
+      if (AudioContextClass) {
+        const audioCtx = new AudioContextClass();
+        audioContextRef.current = audioCtx;
+        const source = audioCtx.createMediaStreamSource(stream);
+        source.connect(audioCtx.destination);
+      }
     } catch (err) {
       console.warn('Could not route audio to speaker output:', err);
     }

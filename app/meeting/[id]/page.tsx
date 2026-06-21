@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { authFetch } from '@/lib/api-client'
 
 export default function MeetingDetailPage({
   params,
@@ -17,7 +18,7 @@ export default function MeetingDetailPage({
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/meeting/${id}`)
+        const res = await authFetch(`/api/meeting/${id}`)
         if (!res.ok) {
           setError(true)
           return

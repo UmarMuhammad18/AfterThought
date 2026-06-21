@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 import { sendFollowUpEmail } from "@/lib/email"
 import { createCalendarEvent } from "@/lib/calendar"
 import { updateSpeakerProfile } from "@/lib/speakers"
 
 export async function POST(req: Request) {
+  const user = await getUserFromRequest(req)
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+  }
+
   const supabase = supabaseAdmin()
 
   try {
@@ -57,6 +62,7 @@ export async function POST(req: Request) {
       .from("meetings")
       .insert({
         id,
+        user_id: user.id,
         title: "New Recording",
         summary,
         action_items: actionItems,

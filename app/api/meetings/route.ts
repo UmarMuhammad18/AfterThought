@@ -1,12 +1,18 @@
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 
-export async function GET() {
+export async function GET(req: Request) {
+  const user = await getUserFromRequest(req)
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+  }
+
   const supabase = supabaseAdmin()
 
   const { data, error } = await supabase
     .from("meetings")
     .select("*")
+    .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 
   if (error) {

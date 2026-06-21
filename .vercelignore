@@ -1,0 +1,5 @@
+# Non-Next.js sources excluded from the Vercel build/deploy.
+# AI logic from the former Althair/ folder has been ported into app/api/*/ai.
+.althair-archive
+desktop-app
+extension

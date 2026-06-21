@@ -3,6 +3,7 @@ import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 import { sendFollowUpEmail } from "@/lib/email"
 import { createCalendarEvent } from "@/lib/calendar"
 import { updateSpeakerProfile } from "@/lib/speakers"
+import { analyzeTranscript, isAiConfigured, GeminiServiceError } from "./ai"
 
 export async function POST(req: Request) {
   const user = await getUserFromRequest(req)
@@ -31,13 +32,37 @@ export async function POST(req: Request) {
       { speaker: "Speaker 1", text: "We need to finalize the project timeline." }
     ]
 
-    const summary = "This is a placeholder summary generated for the meeting."
+    // Placeholder defaults, used when AI is not configured or analysis fails.
+    let summary = "This is a placeholder summary generated for the meeting."
 
-    const actionItems = [
+    let actionItems = [
       "Follow up with the client",
       "Prepare the proposal",
       "Schedule next meeting"
     ]
+
+    // Run the extracted AI pipeline on the transcript text when configured.
+    if (isAiConfigured()) {
+      try {
+        const transcriptText = segments.map((s) => `${s.speaker}: ${s.text}`).join("\n")
+        const analysis = await analyzeTranscript(transcriptText)
+
+        if (analysis.summary) summary = analysis.summary
+
+        if (analysis.action_items.length > 0) {
+          actionItems = analysis.action_items.map((item) => {
+            const meta = [item.owner, item.deadline].filter(Boolean).join(" — ")
+            return meta ? `${item.task} (${meta})` : item.task
+          })
+        }
+      } catch (err) {
+        if (err instanceof GeminiServiceError) {
+          console.error("[v0] AI analysis failed, using placeholders:", err.message)
+        } else {
+          console.error("[v0] Unexpected AI analysis error:", err)
+        }
+      }
+    }
 
     // --- SCAFFOLDING PLACEHOLDERS ---
     

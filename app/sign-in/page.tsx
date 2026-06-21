@@ -18,7 +18,7 @@ export default function SignInPage() {
   const [notice, setNotice] = useState<string | null>(null)
 
   useEffect(() => {
-    if (user) router.replace('/')
+    if (user) router.replace('/success')
   }, [user, router])
 
   async function handleSubmit(e: React.FormEvent) {
@@ -38,11 +38,17 @@ export default function SignInPage() {
     const { error } = await signIn(email, password)
     setSubmitting(false)
     if (error) setError(error)
-    else router.replace('/')
+    else router.replace('/success')
   }
 
   return (
-    <div className="mx-auto flex min-h-[70svh] max-w-md flex-col justify-center gap-8">
+    <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-8 px-4 py-16">
+      <Link href="/home" className="mx-auto flex items-center gap-2 text-muted-foreground">
+        <span className="grid size-7 place-items-center rounded-lg bg-primary/15 text-primary">
+          <Brain className="size-4" />
+        </span>
+        <span className="font-heading text-sm font-semibold text-foreground">AfterThought</span>
+      </Link>
       <div className="flex flex-col items-center gap-3 text-center">
         <span className="grid size-12 place-items-center rounded-2xl border border-glass-border bg-primary/10 text-primary">
           <Brain className="size-6" />
@@ -126,6 +132,6 @@ export default function SignInPage() {
           Sign up
         </Link>
       </p>
-    </div>
+    </main>
   )
 }

@@ -8,13 +8,15 @@ const TEAM = [
     role: 'Full-Stack Engineer',
     initials: 'UM',
     bio: 'Builds the web app, API, and data layer that keep every meeting in sync.',
+    github: 'https://github.com/UmarMuhammad18',
   },
   {
     icon: BrainCircuit,
-    name: 'Teammate',
+    name: 'Rayene',
     role: 'AI Engineer',
-    initials: 'AI',
+    initials: 'RB',
     bio: 'Designs the transcription and summarisation pipeline that powers the insights.',
+    github: 'https://github.com/Rayene-B',
   },
 ]
 
@@ -49,9 +51,13 @@ export function Team() {
                     </span>
                   </div>
                 </div>
-                <p className="text-sm leading-relaxed text-muted-foreground">{member.bio}</p>
+
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {member.bio}
+                </p>
+
                 <a
-                  href="https://github.com/UmarMuhammad18/AfterThought"
+                  href={member.github}
                   target="_blank"
                   rel="noreferrer noopener"
                   className="mt-auto inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"

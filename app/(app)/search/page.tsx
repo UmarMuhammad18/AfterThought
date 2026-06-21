@@ -138,7 +138,7 @@ export default function SearchPage() {
                 {searchResults.map((result, index) => (
                   <Link
                     key={`${result.text}-${index}`}
-                    href={result.meetingId ? `/meeting/${result.meetingId}` : '/'}
+                    href={result.meetingId ? `/meeting/${result.meetingId}` : '/dashboard'}
                     className="glass rounded-2xl p-4 transition-all hover:border-primary/30"
                   >
                     <div className="flex items-center justify-between gap-3">

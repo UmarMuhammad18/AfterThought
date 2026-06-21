@@ -13,7 +13,7 @@ export default function SuccessPage() {
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
         className="glass flex w-full max-w-md flex-col items-center gap-6 rounded-3xl p-10 text-center"
       >
-        <Link href="/home" className="flex items-center gap-2 text-muted-foreground">
+        <Link href="/" className="flex items-center gap-2 text-muted-foreground">
           <span className="grid size-8 place-items-center rounded-xl bg-primary/15 text-primary">
             <Brain className="size-4" />
           </span>
@@ -39,7 +39,7 @@ export default function SuccessPage() {
         </div>
 
         <Link
-          href="/"
+          href="/dashboard"
           className="neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           Go to Dashboard

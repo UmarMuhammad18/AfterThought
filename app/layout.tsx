@@ -16,6 +16,7 @@ export const metadata: Metadata = {
   description:
     'AfterThought remembers every meeting for you — searchable summaries, decisions, action items, and insights powered by AI.',
   generator: 'v0.app',
+  manifest: '/manifest.json',
 }
 
 export const viewport: Viewport = {

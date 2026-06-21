@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase"
+import { sendFollowUpEmail } from "@/lib/email"
+import { createCalendarEvent } from "@/lib/calendar"
+import { updateSpeakerProfile } from "@/lib/speakers"
 
 export async function POST(req: Request) {
   const supabase = supabaseAdmin()
@@ -30,6 +33,25 @@ export async function POST(req: Request) {
       "Prepare the proposal",
       "Schedule next meeting"
     ]
+
+    // --- SCAFFOLDING PLACEHOLDERS ---
+    
+    // 1. Automatic follow-up email
+    // await sendFollowUpEmail(id, summary, actionItems, "user@example.com");
+
+    // 2. Calendar integration
+    // for (const item of actionItems) {
+    //   await createCalendarEvent(item, id);
+    // }
+
+    // 3. Speaker profiles
+    // const uniqueSpeakers = Array.from(new Set(segments.map(s => s.speaker)));
+    // for (const speaker of uniqueSpeakers) {
+    //   // Pass empty objects/arrays as placeholders for mentions and individual action items
+    //   await updateSpeakerProfile(speaker, id, {}, []);
+    // }
+
+    // --------------------------------
 
     const { error } = await supabase
       .from("meetings")

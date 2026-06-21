@@ -16,8 +16,8 @@ export function BrandLogo({
         <span className="ml-0.5 size-1.5 translate-y-0 rounded-full bg-pink" aria-hidden />
       </span>
       {showWordmark && (
-        <span className="font-heading text-base font-semibold tracking-tight text-foreground">
-          AftrThought
+        <span className="font-heading text-lg font-bold tracking-tight text-foreground">
+          AfterThought
         </span>
       )}
     </span>

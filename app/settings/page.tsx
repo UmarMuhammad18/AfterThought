@@ -53,7 +53,7 @@ export default function SettingsPage() {
           Settings
         </h1>
         <p className="text-muted-foreground">
-          Manage your AftrThought account and capture preferences.
+          Manage your AfterThought account and capture preferences.
         </p>
       </div>
 
@@ -64,7 +64,7 @@ export default function SettingsPage() {
           </span>
           <div className="flex flex-col">
             <span className="font-medium text-foreground">Maya Chen</span>
-            <span className="text-sm text-muted-foreground">maya@aftrthought.ai</span>
+            <span className="text-sm text-muted-foreground">maya@afterthought.ai</span>
           </div>
         </div>
       </InsightCard>

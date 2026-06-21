@@ -64,7 +64,7 @@ export function FloatingAssistant() {
             <span className="grid size-7 place-items-center rounded-lg bg-primary/15 text-primary">
               <Sparkles className="size-4" />
             </span>
-            <span className="font-heading text-sm font-semibold">AftrThought AI</span>
+            <span className="font-heading text-sm font-semibold">AfterThought AI</span>
           </div>
           <button
             onClick={() => setOpen(false)}

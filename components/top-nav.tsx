@@ -10,6 +10,8 @@ const tabs = [
   { label: 'Home', href: '/', icon: Home },
   { label: 'Search', href: '/search', icon: Search },
   { label: 'Insights', href: '/insights', icon: BarChart3 },
+  { label: 'Calendar', href: '/calendar', icon: Search }, // Reusing icon
+  { label: 'Speakers', href: '/speakers', icon: Search }, // Reusing icon
   { label: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -19,7 +21,7 @@ export function TopNav() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6 lg:px-8">
       <nav className="glass mx-auto flex h-14 w-full max-w-7xl items-center justify-between rounded-2xl px-3 sm:px-4">
-        <Link href="/" className="flex items-center" aria-label="AftrThought home">
+        <Link href="/" className="flex items-center" aria-label="AfterThought home">
           <BrandLogo />
         </Link>
 

@@ -46,7 +46,7 @@ export default function DashboardPage() {
             Every meeting, perfectly remembered.
           </h1>
           <p className="max-w-2xl text-pretty leading-relaxed text-muted-foreground">
-            Search, summarize, and revisit every conversation. AftrThought turns
+            Search, summarize, and revisit every conversation. AfterThought turns
             your meetings into a living, queryable memory.
           </p>
         </div>

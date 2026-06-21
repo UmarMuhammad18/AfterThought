@@ -180,3 +180,21 @@ export const topicFrequency = [
   { week: 'W3', Roadmap: 15, Pricing: 9, Search: 21 },
   { week: 'W4', Roadmap: 22, Pricing: 16, Search: 19 },
 ]
+
+export type CalendarEvent = {
+  id: string
+  meeting_id: string
+  title: string
+  due_date: string
+  assignee: string
+  created_at: string
+}
+
+export type Speaker = {
+  id: string
+  name: string
+  meetings: string[]
+  mentions: any
+  action_items: string[]
+}
+

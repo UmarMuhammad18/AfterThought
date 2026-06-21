@@ -3,11 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, Mail, Lock, Brain } from 'lucide-react'
+import { Loader2, Mail, Lock, Brain, FlaskConical } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
+import { DEMO_PASSWORD, DEMO_USER_EMAIL } from '@/lib/demo'
 
 export default function SignInPage() {
-  const { signIn, signInWithMagicLink, user, configured } = useAuth()
+  const { signIn, signInWithMagicLink, signInDemo, demoEnabled, user, configured } = useAuth()
   const router = useRouter()
 
   const [email, setEmail] = useState('')
@@ -16,6 +17,21 @@ export default function SignInPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+
+  // Demo login (dev only) — prefilled, self-contained credentials.
+  const [demoEmail, setDemoEmail] = useState(DEMO_USER_EMAIL)
+  const [demoPassword, setDemoPassword] = useState(DEMO_PASSWORD)
+  const [demoSubmitting, setDemoSubmitting] = useState(false)
+
+  async function handleDemoSignIn() {
+    setError(null)
+    setNotice(null)
+    setDemoSubmitting(true)
+    const { error } = await signInDemo()
+    setDemoSubmitting(false)
+    if (error) setError(error)
+    else router.replace('/dashboard')
+  }
 
   useEffect(() => {
     if (user) router.replace('/success')

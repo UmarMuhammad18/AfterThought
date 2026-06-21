@@ -26,6 +26,10 @@ export default function SignInPage() {
   async function handleDemoSignIn() {
     setError(null)
     setNotice(null)
+    if (demoEmail !== DEMO_USER_EMAIL || demoPassword !== DEMO_PASSWORD) {
+      setError('Invalid demo credentials.')
+      return
+    }
     setDemoSubmitting(true)
     const { error } = await signInDemo()
     setDemoSubmitting(false)
@@ -141,6 +145,58 @@ export default function SignInPage() {
           {mode === 'password' ? 'Sign in with a magic link instead' : 'Use email and password instead'}
         </button>
       </form>
+
+      {demoEnabled && (
+        <div className="glass flex flex-col gap-4 rounded-2xl border border-primary/30 p-6">
+          <div className="flex items-center gap-2">
+            <span className="grid size-8 place-items-center rounded-lg bg-primary/15 text-primary">
+              <FlaskConical className="size-4" />
+            </span>
+            <div className="flex flex-col">
+              <span className="text-sm font-semibold text-foreground">Demo login</span>
+              <span className="text-xs text-muted-foreground">
+                Temporary access for testing — no account needed.
+              </span>
+            </div>
+          </div>
+
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-muted-foreground">Email</span>
+            <span className="flex items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3">
+              <Mail className="size-4 text-muted-foreground" />
+              <input
+                type="email"
+                value={demoEmail}
+                onChange={(e) => setDemoEmail(e.target.value)}
+                className="h-11 w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </span>
+          </label>
+
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-muted-foreground">Password</span>
+            <span className="flex items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3">
+              <Lock className="size-4 text-muted-foreground" />
+              <input
+                type="password"
+                value={demoPassword}
+                onChange={(e) => setDemoPassword(e.target.value)}
+                className="h-11 w-full bg-transparent text-foreground outline-none placeholder:text-muted-foreground"
+              />
+            </span>
+          </label>
+
+          <button
+            type="button"
+            onClick={handleDemoSignIn}
+            disabled={demoSubmitting}
+            className="flex h-11 items-center justify-center gap-2 rounded-xl border border-primary/40 bg-primary/10 font-medium text-primary transition-colors hover:bg-primary/20 disabled:opacity-60"
+          >
+            {demoSubmitting && <Loader2 className="size-4 animate-spin" />}
+            Continue with demo
+          </button>
+        </div>
+      )}
 
       <p className="text-center text-sm text-muted-foreground">
         {"Don't have an account? "}

@@ -1,106 +1,338 @@
-body {
-  width: 320px;
-  min-height: 200px;
-  padding: 20px;
-  background: #0c0d12;
-  color: #e5e7eb;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  margin: 0;
+/* ============================================================
+   AfterThought Extension — Liquid Glass UI
+   Matches the marketing site: charcoal base, neon-blue accent,
+   frosted glass cards, rounded corners, modern typography.
+   ============================================================ */
+
+:root {
+  --bg: #0c0d12;
+  --bg-radial-1: rgba(59, 130, 246, 0.12);
+  --bg-radial-2: rgba(99, 102, 241, 0.08);
+  --fg: #e5e7eb;
+  --muted: #9ca3af;
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.1);
+  --neon: #60a5fa;
+  --neon-bg: rgba(59, 130, 246, 0.15);
+  --neon-border: rgba(59, 130, 246, 0.32);
+  --neon-glow: rgba(59, 130, 246, 0.25);
+  --danger: #f87171;
+  --danger-bg: rgba(239, 68, 68, 0.14);
+  --danger-border: rgba(239, 68, 68, 0.32);
+  --success: #4ade80;
+  --success-bg: rgba(34, 197, 94, 0.14);
+  --success-border: rgba(34, 197, 94, 0.3);
 }
 
-.glass-container {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+* {
+  box-sizing: border-box;
+}
+
+body {
+  width: 340px;
+  margin: 0;
+  padding: 18px;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(28rem 18rem at 12% -10%, var(--bg-radial-1), transparent 60%),
+    radial-gradient(24rem 16rem at 100% 0%, var(--bg-radial-2), transparent 55%);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Standalone recording tab is wider and vertically centered */
+body.page {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+/* ---------- Glass card ---------- */
+.glass-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(20px) saturate(140%);
+  -webkit-backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid var(--glass-border);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 8px 32px -8px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 14px;
+  text-align: center;
 }
 
+/* ---------- Brand + icons ---------- */
+.brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.icon-badge {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  margin: 0 auto;
+  border-radius: 16px;
+  background: var(--neon-bg);
+  border: 1px solid var(--neon-border);
+  color: var(--neon);
+}
+
+.icon-badge svg {
+  width: 26px;
+  height: 26px;
+}
+
+.icon-badge.danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+/* ---------- Typography ---------- */
 .title {
-  font-size: 20px;
+  font-size: 19px;
   font-weight: 700;
   margin: 0;
   letter-spacing: -0.02em;
+  color: var(--fg);
 }
 
 .subtitle {
   font-size: 13px;
-  opacity: 0.6;
-  margin: 0 0 8px 0;
-  line-height: 1.4;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
 }
 
-button {
-  width: 100%;
-  padding: 12px;
-  border-radius: 12px;
-  background: rgba(59, 130, 246, 0.15);
-  border: 1px solid rgba(59, 130, 246, 0.3);
-  color: #60a5fa;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-button:hover {
-  background: rgba(59, 130, 246, 0.25);
-  border-color: rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 15px rgba(59, 130, 246, 0.2);
-}
-
-.token-label {
+.field-label {
+  display: block;
+  text-align: left;
   font-size: 12px;
-  opacity: 0.7;
   font-weight: 600;
+  color: var(--muted);
 }
 
+/* ---------- Inputs ---------- */
 .token-input {
   width: 100%;
-  box-sizing: border-box;
-  padding: 10px 12px;
+  padding: 11px 13px;
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: #e5e7eb;
+  border: 1px solid var(--glass-border);
+  color: var(--fg);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 12px;
+  line-height: 1.45;
   resize: vertical;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.token-input::placeholder {
+  color: rgba(156, 163, 175, 0.6);
 }
 
 .token-input:focus {
   outline: none;
-  border-color: rgba(59, 130, 246, 0.5);
+  border-color: var(--neon-border);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
 }
 
-button.secondary {
+/* ---------- Buttons ---------- */
+button {
+  width: 100%;
+  padding: 11px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+button svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Primary (neon) */
+.btn-primary {
+  background: var(--neon-bg);
+  border-color: var(--neon-border);
+  color: var(--neon);
+}
+
+.btn-primary:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 16px var(--neon-glow);
+}
+
+/* Secondary (ghost) */
+.btn-secondary {
   background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.12);
   color: #cbd5e1;
 }
 
-button.secondary:hover {
+.btn-secondary:hover {
   background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+/* Danger (stop) */
+.btn-danger {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.24);
+  border-color: rgba(239, 68, 68, 0.5);
+}
+
+/* Link button */
+.link-btn {
+  background: transparent;
+  border: none;
+  color: var(--neon);
+  font-size: 12px;
+  font-weight: 600;
+  text-decoration: none;
+  padding: 4px;
+  width: auto;
+  margin: 0 auto;
+}
+
+.link-btn:hover {
+  text-decoration: underline;
   box-shadow: none;
 }
 
-#status {
-  font-size: 12px;
-  color: #9ca3af;
-  text-align: center;
-  margin: 4px 0 0 0;
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
 }
 
-#message {
-  font-size: 14px;
-  font-weight: 500;
-  color: #e5e7eb;
-  text-align: center;
+/* ---------- Recording pulse ---------- */
+.recording-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--danger);
   margin: 0;
 }
 
+.pulse-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6);
+  animation: pulse 1.4s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 12px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* ---------- Status messages ---------- */
+.status {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+  min-height: 18px;
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.status.success {
+  color: var(--success);
+}
+
+/* Status banner (boxed states) */
+.banner {
+  display: none;
+  align-items: center;
+  gap: 9px;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 11px 13px;
+  border-radius: 12px;
+  border: 1px solid var(--glass-border);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.banner.show {
+  display: flex;
+}
+
+.banner.error {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: var(--danger);
+}
+
+.banner.success {
+  background: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success);
+}
+
+.banner svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+.divider {
+  height: 1px;
+  background: var(--glass-border);
+  border: none;
+  margin: 2px 0;
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

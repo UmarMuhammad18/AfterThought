@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { Brain, Clock, Layers, Loader2 } from 'lucide-react'
 import { SearchBar } from '@/components/search-bar'
 import { MeetingCard } from '@/components/meeting-card'
+import { authFetch } from '@/lib/api-client'
 import type { Meeting } from '@/lib/data'
 
 const stats = [
@@ -19,7 +20,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function loadMeetings() {
       try {
-        const res = await fetch('/api/meetings')
+        const res = await authFetch('/api/meetings')
         const data = await res.json()
         if (data.ok && data.meetings) {
           setMeetings(data.meetings)

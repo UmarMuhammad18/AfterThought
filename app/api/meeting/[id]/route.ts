@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabase"
+import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getUserFromRequest(req)
+  if (!user) {
+    return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+  }
+
   const { id } = await params
   const supabase = supabaseAdmin()
 
@@ -12,6 +17,7 @@ export async function GET(
     .from("meetings")
     .select("*")
     .eq("id", id)
+    .eq("user_id", user.id)
     .single()
 
   if (error || !data) {

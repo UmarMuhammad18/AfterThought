@@ -2,8 +2,9 @@
 
 import { use, useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
+import { authFetch } from '@/lib/api-client'
 
-export default function RecordingPage({
+export default function MeetingDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>
@@ -17,10 +18,7 @@ export default function RecordingPage({
   useEffect(() => {
     async function load() {
       try {
-        const res = await fetch(`/api/meeting/${id}`, {
-          cache: "no-store",
-        })
-
+        const res = await authFetch(`/api/meeting/${id}`)
         if (!res.ok) {
           setError(true)
           return
@@ -29,7 +27,7 @@ export default function RecordingPage({
         const json = await res.json()
         setData(json)
       } catch (err) {
-        console.error("Failed to load recording:", err)
+        console.error("Failed to load meeting:", err)
         setError(true)
       } finally {
         setLoading(false)
@@ -50,7 +48,7 @@ export default function RecordingPage({
   if (error || !data) {
     return (
       <div className="text-center text-red-500 mt-20">
-        Failed to load recording.
+        Failed to load meeting.
       </div>
     )
   }
@@ -58,12 +56,11 @@ export default function RecordingPage({
   return (
     <div className="max-w-3xl mx-auto space-y-10">
 
-      {/* Header */}
       <header className="space-y-2">
         <h1 className="font-heading text-3xl font-bold tracking-tight text-foreground">
-          {data.title || 'Recording Summary'}
+          {data.title || 'Meeting Details'}
         </h1>
-        <p className="text-sm text-muted-foreground">Recording ID: {id}</p>
+        <p className="text-sm text-muted-foreground">Meeting ID: {id}</p>
       </header>
 
       {/* Summary */}

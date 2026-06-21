@@ -1,8 +1,7 @@
 import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { TopNav } from '@/components/top-nav'
-import { FloatingAssistant } from '@/components/floating-assistant'
+import { AuthProvider } from '@/components/auth-provider'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
@@ -35,11 +34,7 @@ export default function RootLayout({
       className={`dark bg-background ${geistSans.variable} ${geistMono.variable}`}
     >
       <body className="font-sans antialiased min-h-svh">
-        <TopNav />
-        <main className="mx-auto w-full max-w-7xl px-4 pb-24 pt-24 sm:px-6 lg:px-8">
-          {children}
-        </main>
-        <FloatingAssistant />
+        <AuthProvider>{children}</AuthProvider>
         {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>

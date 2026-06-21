@@ -8,7 +8,7 @@ import { BrandLogo } from '@/components/brand-logo'
 import { useAuth } from '@/components/auth-provider'
 
 const tabs = [
-  { label: 'Home', href: '/', icon: Home },
+  { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Search', href: '/search', icon: Search },
   { label: 'Insights', href: '/insights', icon: BarChart3 },
   { label: 'Calendar', href: '/calendar', icon: Calendar },
@@ -37,15 +37,14 @@ export function TopNav() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6 lg:px-8">
       <nav className="glass mx-auto flex h-14 w-full max-w-7xl items-center justify-between rounded-2xl px-3 sm:px-4">
-        <Link href="/" className="flex items-center" aria-label="AfterThought home">
+        <Link href="/dashboard" className="flex items-center" aria-label="AfterThought dashboard">
           <BrandLogo />
         </Link>
 
         {showNav && (
           <div className="flex items-center gap-1">
             {tabs.map((tab) => {
-              const active =
-                tab.href === '/' ? pathname === '/' : pathname.startsWith(tab.href)
+              const active = pathname.startsWith(tab.href)
               const Icon = tab.icon
               return (
                 <Link

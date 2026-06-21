@@ -7,10 +7,10 @@ import { Brain, Menu, X, LayoutDashboard } from 'lucide-react'
 import { useAuth } from '@/components/auth-provider'
 
 const LINKS = [
-  { href: '/home', label: 'Home' },
-  { href: '/home#features', label: 'Features' },
-  { href: '/home#how-it-works', label: 'How it works' },
-  { href: '/home#tech', label: 'Tech' },
+  { href: '/', label: 'Home' },
+  { href: '/#features', label: 'Features' },
+  { href: '/#how-it-works', label: 'How it works' },
+  { href: '/#tech', label: 'Tech' },
 ]
 
 export function MarketingNav() {
@@ -25,7 +25,7 @@ export function MarketingNav() {
       className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6"
     >
       <nav className="glass mx-auto flex w-full max-w-6xl items-center justify-between rounded-2xl px-4 py-3 sm:px-6">
-        <Link href="/home" className="flex items-center gap-2.5">
+        <Link href="/" className="flex items-center gap-2.5">
           <span className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
             <Brain className="size-5" />
           </span>
@@ -49,7 +49,7 @@ export function MarketingNav() {
         <div className="hidden items-center gap-2 md:flex">
           {user ? (
             <Link
-              href="/"
+              href="/dashboard"
               className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               <LayoutDashboard className="size-4" />
@@ -103,7 +103,7 @@ export function MarketingNav() {
           <div className="mt-2 flex flex-col gap-2 border-t border-glass-border pt-3">
             {user ? (
               <Link
-                href="/"
+                href="/dashboard"
                 onClick={() => setOpen(false)}
                 className="flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground"
               >

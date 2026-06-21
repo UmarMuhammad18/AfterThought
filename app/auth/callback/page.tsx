@@ -24,13 +24,13 @@ export default function AuthCallbackPage() {
       const { data } = await supabase!.auth.getSession()
       if (cancelled) return
       if (data.session) {
-        router.replace('/')
+        router.replace('/dashboard')
       } else {
         // Give the URL detection a brief moment, then re-check.
         setTimeout(async () => {
           const { data: retry } = await supabase!.auth.getSession()
           if (cancelled) return
-          if (retry.session) router.replace('/')
+          if (retry.session) router.replace('/dashboard')
           else {
             setError('Could not complete sign-in. The link may have expired.')
             setTimeout(() => router.replace('/sign-in'), 2500)

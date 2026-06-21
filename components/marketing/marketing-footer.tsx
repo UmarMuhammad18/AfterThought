@@ -9,7 +9,7 @@ export function MarketingFooter() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-10">
         <div className="flex flex-col justify-between gap-8 md:flex-row">
           <div className="flex max-w-sm flex-col gap-3">
-            <Link href="/home" className="flex items-center gap-2.5">
+            <Link href="/" className="flex items-center gap-2.5">
               <span className="grid size-9 place-items-center rounded-xl bg-primary/15 text-primary">
                 <Brain className="size-5" />
               </span>
@@ -25,10 +25,10 @@ export function MarketingFooter() {
 
           <div className="flex flex-col gap-3">
             <span className="text-sm font-semibold text-foreground">Product</span>
-            <Link href="/home#features" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link href="/#features" className="text-sm text-muted-foreground hover:text-foreground">
               Features
             </Link>
-            <Link href="/home#how-it-works" className="text-sm text-muted-foreground hover:text-foreground">
+            <Link href="/#how-it-works" className="text-sm text-muted-foreground hover:text-foreground">
               How it works
             </Link>
             <Link href="/sign-in" className="text-sm text-muted-foreground hover:text-foreground">

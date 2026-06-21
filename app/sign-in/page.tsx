@@ -43,7 +43,7 @@ export default function SignInPage() {
 
   return (
     <main className="mx-auto flex min-h-svh max-w-md flex-col justify-center gap-8 px-4 py-16">
-      <Link href="/home" className="mx-auto flex items-center gap-2 text-muted-foreground">
+      <Link href="/" className="mx-auto flex items-center gap-2 text-muted-foreground">
         <span className="grid size-7 place-items-center rounded-lg bg-primary/15 text-primary">
           <Brain className="size-4" />
         </span>

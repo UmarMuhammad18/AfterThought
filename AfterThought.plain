@@ -1,0 +1,616 @@
+# AfterThought — Codeplain Specification
+
+> AI Meeting Memory Engine. A Next.js 16 (App Router) web app + PWA, a Manifest V3
+> browser extension that records audio, and a Supabase (Postgres + Auth) backend.
+> This `.plain` file documents the repository as it currently exists. It is
+> documentation only — it does not change any code.
+
+---
+
+## 1. Project Overview
+
+**AfterThought** records, transcribes, and organizes meetings automatically,
+turning conversations into searchable summaries, action items, speaker insights,
+and mind maps.
+
+The system has three runtime surfaces that share one Supabase backend:
+
+- **Web app (Next.js App Router + PWA)** — the marketing site, authentication
+  pages, and the authenticated dashboard where meetings, insights, speakers,
+  calendar events, and follow-up templates are viewed.
+- **Browser extension (Manifest V3)** — captures microphone audio in a dedicated
+  tab and uploads it to the backend for processing, authenticated with the
+  user's Supabase access token.
+- **Backend (Next.js Route Handlers + Supabase)** — validates bearer tokens,
+  persists meetings scoped per user, and exposes read APIs for the dashboard.
+
+The product is built around real authentication and per-user data ownership.
+The AI transcription/summarization pipeline is intentionally a **placeholder**
+(scaffolding) so the surrounding architecture can be exercised end to end.
+
+**Key behaviors:**
+
+- Email + password authentication (plus magic-link) via Supabase Auth.
+- Per-user data ownership enforced at two layers: application-code `user_id`
+  scoping (service-role API routes) and database Row Level Security (anon key).
+- Graceful **demo mode**: when Supabase env vars are absent, the app still builds
+  and runs with auth disabled so local development and previews never break.
+
+---
+
+## 2. High-Level Architecture
+
+```
+                         ┌──────────────────────────────┐
+                         │        Supabase (cloud)        │
+                         │  Postgres + Auth + RLS         │
+                         └───────────────┬────────────────┘
+                                         │
+            service-role key             │  anon key + access token
+       (server, bypasses RLS,            │  (browser session)
+        enforces user_id in code)        │
+                                         │
+   ┌──────────────────────┐     ┌────────┴───────────┐     ┌──────────────────────┐
+   │  Browser Extension   │     │   Next.js Backend   │     │   Next.js Frontend    │
+   │  (Manifest V3)       │────▶│   Route Handlers    │◀────│   (App Router + PWA)   │
+   │  records audio,      │ POST│   /api/*            │ GET │   dashboard, auth,     │
+   │  Bearer token upload │     │   token validation  │     │   marketing site       │
+   └──────────────────────┘     └─────────────────────┘     └──────────────────────┘
+```
+
+- **Frontend** and **Backend** live in the same Next.js project (`app/`).
+- The **extension** is a separate, framework-less MV3 bundle in `extension/`.
+- A `scripts/build.js` esbuild orchestrator exists for an Electron desktop app
+  and a TSX extension popup; these source trees (`desktop-app/`,
+  `extension/popup.tsx`) are **not present** in the repo and are documented as
+  aspirational/unused (see Known Limitations).
+
+---
+
+## 3. Frontend Architecture (Next.js App Router)
+
+The frontend uses the Next.js App Router with **route groups** to separate two
+distinct chromes under a single root layout.
+
+### Root layout
+- `app/layout.tsx` — Loads Geist / Geist Mono fonts, sets metadata + viewport,
+  applies the dark `bg-background` html class, mounts `AuthProvider` (global auth
+  context) and Vercel `Analytics`. It contains **no** app navigation, so
+  marketing and auth pages render full-bleed.
+- `app/globals.css` — Tailwind v4 theme tokens (liquid-glass dark palette,
+  neon-blue primary accent, pink micro-accent), `.glass`, `.glass-neon`,
+  `.neon-glow` utility classes, and font variables.
+
+### Route group: `(app)` — authenticated dashboard
+- `app/(app)/layout.tsx` — Mounts the dashboard chrome: `TopNav`, the centered
+  `<main>` container, `FloatingAssistant`, and wraps children in `AuthGate`
+  (redirects unauthenticated users to `/sign-in` when Supabase is configured).
+- Pages (URLs are unchanged by the group):
+  - `app/(app)/page.tsx` — `/` Dashboard; lists meetings via `authFetch('/api/meetings')`.
+  - `app/(app)/search/page.tsx` — `/search` global search UI.
+  - `app/(app)/insights/page.tsx` — `/insights` analytics (topics, sentiment, mentions).
+  - `app/(app)/speakers/page.tsx` — `/speakers` speaker directory (fetches `/api/speakers`).
+  - `app/(app)/speakers/[id]/page.tsx` — `/speakers/:id` speaker detail.
+  - `app/(app)/calendar/page.tsx` — `/calendar` action-item calendar (fetches `/api/calendar`).
+  - `app/(app)/templates/page.tsx` — `/templates` follow-up email templates (fetches `/api/templates`).
+  - `app/(app)/settings/page.tsx` — `/settings` profile, sign out, and the
+    "Extension access" token card.
+  - `app/(app)/meeting/[id]/page.tsx` — `/meeting/:id` meeting detail (`authFetch`).
+  - `app/(app)/recording/[id]/page.tsx` — `/recording/:id` processed-recording view (`authFetch`).
+
+### Marketing + auth (outside the group, no app chrome)
+- `app/home/page.tsx` — `/home` marketing landing page composed of section
+  components (`Hero`, `FeaturesGrid`, `HowItWorks`, `TechStack`, `Screenshots`,
+  `Team`, `CtaBand`) plus `MarketingNav` and `MarketingFooter`.
+- `app/sign-in/page.tsx` — `/sign-in` standalone email+password sign-in form.
+- `app/sign-up/page.tsx` — `/sign-up` standalone sign-up form.
+- `app/auth/callback/page.tsx` — `/auth/callback` magic-link / email confirmation handler.
+- `app/success/page.tsx` — `/success` post-login confirmation screen.
+- `app/not-found.tsx` — global standalone animated 404.
+
+### Client state & data fetching
+- **Auth context**: `components/auth-provider.tsx` exposes `useAuth()`
+  (`user`, `session`, `loading`, `configured`, `signIn`, `signUp`,
+  `signInWithMagicLink`, `signOut`, `getAccessToken`).
+- **Authenticated requests**: `lib/api-client.ts` `authFetch()` attaches the
+  Supabase access token as a `Bearer` header to every protected API call.
+- **Animations**: `framer-motion` drives the hero stagger, the reusable
+  scroll-reveal wrapper (`components/marketing/reveal.tsx`), success, and 404.
+
+### Shared / dashboard components
+`components/top-nav.tsx`, `floating-assistant.tsx`, `glass-panel.tsx`,
+`insight-card.tsx`, `summary-card.tsx`, `meeting-card.tsx`, `search-bar.tsx`,
+`transcript-block.tsx`, `meeting-insights-transcript.tsx`, `mind-map-canvas.tsx`,
+`mind-map-node.tsx`, `brand-logo.tsx`, `email-template.tsx`, and `ui/button.tsx`.
+
+---
+
+## 4. Backend Architecture (API Routes)
+
+All backend logic is implemented as Next.js Route Handlers under `app/api/`.
+
+### Authenticated, Supabase-backed (per-user)
+- `app/api/transcribe/route.ts` — **POST**. Requires a valid bearer token
+  (`getUserFromRequest`). Reads the raw audio `ArrayBuffer`, generates a UUID,
+  produces a **placeholder** transcript/summary/action-items, and inserts a row
+  into `meetings` stamped with `user_id`. Returns `{ ok, id }`. Contains
+  commented scaffolding hooks for follow-up email, calendar events, and speaker
+  profiles.
+- `app/api/meetings/route.ts` — **GET**. Returns the caller's meetings ordered by
+  `created_at desc`, filtered by `user_id`.
+- `app/api/meeting/[id]/route.ts` — **GET**. Returns a single meeting scoped to
+  `id` **and** `user_id`; 404 if not owned/found.
+- `app/api/speakers/route.ts` — **GET**. Returns the caller's speakers; degrades
+  to an empty list if the table does not yet exist.
+- `app/api/calendar/route.ts` — **GET**. Returns the caller's calendar events;
+  degrades to an empty list if the table does not yet exist.
+- `app/api/templates/route.ts` — **GET**. Auth-gated; returns static placeholder
+  follow-up email templates (no AI generation).
+
+### Demo/static (no auth, fixture data from `lib/fakeData.ts`)
+- `app/api/summary/route.ts` — **GET** placeholder summaries.
+- `app/api/insights/route.ts` — **GET** placeholder insights/transcript/topics/etc.
+- `app/api/mindmap/route.ts` — **GET** placeholder mind-map nodes.
+- `app/api/search/route.ts` — **GET** `?q=` filters fixture transcript + summaries.
+
+### Server helpers
+- `lib/supabase.ts`
+  - `supabaseAdmin()` — service-role client (server only, `persistSession:false`).
+  - `getUserFromToken(token)` — validates a token, returns `User | null`, never throws.
+  - `getUserFromRequest(req)` — extracts the `Authorization: Bearer` token and validates it.
+- `lib/supabase-browser.ts`
+  - `isSupabaseConfigured` — boolean derived from public env vars.
+  - `supabaseBrowser()` — memoized anon client with persisted sessions; returns
+    `null` when unconfigured (enables demo mode).
+
+### Scaffolding libraries (placeholders, not yet wired into live flows)
+- `lib/email.ts` — `sendFollowUpEmail()` logs intent only.
+- `lib/calendar.ts` — calendar-event creation scaffolding.
+- `lib/speakers.ts` — speaker-profile update scaffolding.
+
+---
+
+## 5. Database Schema (Supabase)
+
+Defined in `supabase/schema.sql` (idempotent; safe to re-run). All tables live in
+`public` and reference `auth.users(id)` with `on delete cascade`.
+
+### `public.meetings`
+| column        | type          | notes                                    |
+|---------------|---------------|------------------------------------------|
+| id            | uuid PK       | `default gen_random_uuid()`              |
+| user_id       | uuid NOT NULL | FK → `auth.users(id)`, indexed           |
+| title         | text NOT NULL | `default 'New Recording'`                |
+| summary       | text          |                                          |
+| action_items  | jsonb         | `default '[]'`                           |
+| segments      | jsonb         | `default '[]'` (speaker/text pairs)      |
+| created_at    | timestamptz   | `default now()`                          |
+
+### `public.speakers` (scaffolding)
+| column        | type          | notes                          |
+|---------------|---------------|--------------------------------|
+| id            | uuid PK       |                                |
+| user_id       | uuid NOT NULL | FK → `auth.users(id)`, indexed |
+| name          | text NOT NULL |                                |
+| meetings      | jsonb         | `default '[]'`                 |
+| mentions      | jsonb         | `default '{}'`                 |
+| action_items  | jsonb         | `default '[]'`                 |
+| created_at    | timestamptz   | `default now()`                |
+
+### `public.calendar_events` (scaffolding)
+| column      | type          | notes                                   |
+|-------------|---------------|-----------------------------------------|
+| id          | uuid PK       |                                         |
+| user_id     | uuid NOT NULL | FK → `auth.users(id)`, indexed          |
+| meeting_id  | uuid          | FK → `public.meetings(id)` cascade      |
+| title       | text NOT NULL |                                         |
+| due_date    | timestamptz   |                                         |
+| assignee    | text          |                                         |
+| created_at  | timestamptz   | `default now()`                         |
+
+TypeScript shapes mirroring these tables live in `lib/data.ts` (`Meeting`,
+`Speaker`, `CalendarEvent`) alongside demo fixtures.
+
+---
+
+## 6. Authentication Flow (Supabase Auth + RLS)
+
+**Method:** email + password (default) and magic link, via Supabase Auth.
+
+### Sign up / Sign in (web)
+1. User submits credentials on `/sign-up` or `/sign-in`.
+2. `useAuth()` (`components/auth-provider.tsx`) calls
+   `supabase.auth.signUp` / `signInWithPassword` / `signInWithOtp`.
+3. On success the session is persisted client-side (localStorage) and
+   `onAuthStateChange` updates context. The user is routed to `/success`.
+4. Magic-link / email-confirmation redirects land on `/auth/callback`, which
+   finalizes the session and forwards into the app.
+
+### Route protection
+- `components/auth-gate.tsx` wraps the `(app)` group.
+  - If Supabase is **not configured** → open demo mode (renders children).
+  - If configured and `loading` → spinner.
+  - If configured, no user, and route is not public → redirect to `/sign-in`.
+  - Public routes: `/sign-in`, `/sign-up`, `/auth/callback`.
+
+### API authorization (two-layer ownership)
+1. **Application layer** — API routes use the **service-role** key (which
+   bypasses RLS) and therefore enforce ownership explicitly: every request is
+   validated via `getUserFromRequest`, and every query filters by `user_id`.
+2. **Database layer (RLS)** — `supabase/schema.sql` enables RLS and adds
+   `select/insert/update/delete` policies of the form `auth.uid() = user_id` on
+   `meetings`, `speakers`, and `calendar_events`. This protects any client that
+   talks to Supabase directly with the anon key.
+
+### Extension auth
+The extension stores the user's Supabase **access token** in
+`chrome.storage.local` (key `afterthought_access_token`) and sends it as a
+`Bearer` header on upload. Tokens are surfaced to the user via the
+"Extension access" card on `/settings` (`getAccessToken()`).
+
+---
+
+## 7. Chrome Extension Architecture
+
+A framework-less Manifest V3 extension in `extension/`.
+
+- `manifest.json` — MV3. `permissions: tabs, activeTab, storage, microphone`.
+  `host_permissions: http://localhost:3000/*`, `https://afterthought.vercel.app/*`.
+  Background service worker (`type: module`), popup = `popup.html`.
+- `popup.html` / `popup.css` / `popup.js` — Popup UI. Lets the user save/clear
+  their Supabase access token (persisted to `chrome.storage.local`) and start a
+  recording session by asking the background worker to open the recording tab.
+- `background.js` — Service worker. Handles two messages:
+  - `open-recording-tab` → opens `recording.html` in a new tab.
+  - `upload-recording` → `uploadRecording(blob)`: reads the stored token, POSTs
+    the audio Blob to `http://localhost:3000/api/transcribe` with
+    `Content-Type: audio/webm` and `Authorization: Bearer <token>`; surfaces a
+    clear error on missing token or `401`.
+- `recording.html` / `recording.js` — Dedicated recording page. Uses
+  `navigator.mediaDevices.getUserMedia({ audio:true })` + `MediaRecorder`,
+  collects chunks into an `audio/webm` Blob, sends it to the background worker,
+  and on success redirects to `http://localhost:3000/recording/<id>`.
+- `content.js` — Minimal content script (logs presence only).
+
+**Note:** `manifest.json` references `popup.js` (the shipped vanilla JS popup),
+while `scripts/build.js` references a `popup.tsx` source that is not present.
+
+---
+
+## 8. PWA Architecture
+
+- `next.config.mjs` wraps the Next config with `next-pwa` (`withPWAInit`):
+  - `dest: "public"`, `disable: NODE_ENV === "development"` (service worker is
+    generated only for production builds), `images.unoptimized: true`,
+    and `turbopack.root` pinned to the project directory.
+- `public/manifest.json` — Web App Manifest: name "AfterThought",
+  `display: standalone`, `start_url: /`, `background_color`/`theme_color`
+  `#0c0d12`, icons (`/icon-light-32x32.png`, `/apple-icon.png`).
+- Installable on desktop/mobile; the production service worker provides caching
+  for offline-capable shell loading.
+
+---
+
+## 9. Data Flow
+
+### Extension → Backend
+```
+recording.js (MediaRecorder → audio/webm Blob)
+   → background.js upload-recording message
+   → fetch POST /api/transcribe
+        headers: Content-Type: audio/webm, Authorization: Bearer <access_token>
+   → 200 { ok:true, id }  → redirect /recording/<id>
+   → 401 → "Unauthorized, save a fresh token"
+```
+
+### Backend → Supabase
+```
+/api/transcribe (POST)
+   → getUserFromRequest(req)  // validate bearer token → User
+   → supabaseAdmin().from('meetings').insert({ id, user_id, title, summary, action_items, segments })
+GET routes (/api/meetings, /api/meeting/[id], /api/speakers, /api/calendar)
+   → supabaseAdmin().from(<table>).select('*').eq('user_id', user.id)
+```
+
+### Supabase → Frontend
+```
+Dashboard / detail pages
+   → authFetch('/api/...')  // attaches Bearer token from supabaseBrowser() session
+   → Route Handler returns user-scoped rows
+   → React state renders meetings / insights / speakers / calendar / templates
+```
+
+### AI Pipeline (placeholder)
+```
+/api/transcribe currently returns hard-coded:
+   segments = [ {speaker, text}, ... ]
+   summary  = "placeholder summary"
+   actionItems = [ ... ]
+Future: audio → STT (e.g. Whisper) → LLM (GPT/Claude) → summary, action items,
+speaker diarization, then fan out to lib/email.ts, lib/calendar.ts, lib/speakers.ts.
+```
+
+---
+
+## 10. File-by-File Breakdown
+
+### App (routing)
+- `app/layout.tsx` — Root layout: fonts, metadata, `AuthProvider`, Analytics.
+- `app/globals.css` — Tailwind v4 theme tokens + glass/neon utilities.
+- `app/not-found.tsx` — Standalone animated 404.
+- `app/(app)/layout.tsx` — Dashboard chrome + `AuthGate`.
+- `app/(app)/page.tsx` — Dashboard (`/`).
+- `app/(app)/search/page.tsx` — Search (`/search`).
+- `app/(app)/insights/page.tsx` — Insights (`/insights`).
+- `app/(app)/speakers/page.tsx` — Speakers list (`/speakers`).
+- `app/(app)/speakers/[id]/page.tsx` — Speaker detail.
+- `app/(app)/calendar/page.tsx` — Calendar (`/calendar`).
+- `app/(app)/templates/page.tsx` — Follow-up templates (`/templates`).
+- `app/(app)/settings/page.tsx` — Settings + extension token card.
+- `app/(app)/meeting/[id]/page.tsx` — Meeting detail.
+- `app/(app)/recording/[id]/page.tsx` — Recording result.
+- `app/home/page.tsx` — Marketing landing.
+- `app/sign-in/page.tsx` — Sign in.
+- `app/sign-up/page.tsx` — Sign up.
+- `app/auth/callback/page.tsx` — Magic-link/email callback.
+- `app/success/page.tsx` — Post-login success.
+
+### API routes
+- `app/api/transcribe/route.ts` — POST audio → insert meeting (auth, placeholder AI).
+- `app/api/meetings/route.ts` — GET user meetings (auth).
+- `app/api/meeting/[id]/route.ts` — GET single owned meeting (auth).
+- `app/api/speakers/route.ts` — GET user speakers (auth, degrades empty).
+- `app/api/calendar/route.ts` — GET user calendar events (auth, degrades empty).
+- `app/api/templates/route.ts` — GET placeholder templates (auth).
+- `app/api/summary/route.ts` — GET fixture summaries.
+- `app/api/insights/route.ts` — GET fixture insights bundle.
+- `app/api/mindmap/route.ts` — GET fixture mind-map nodes.
+- `app/api/search/route.ts` — GET fixture full-text-ish search.
+
+### lib
+- `lib/supabase.ts` — service-role client + token validation helpers.
+- `lib/supabase-browser.ts` — anon browser client + `isSupabaseConfigured`.
+- `lib/api-client.ts` — `authFetch()` bearer-token wrapper.
+- `lib/data.ts` — TS types + dashboard demo fixtures.
+- `lib/fakeData.ts` — fixtures backing the demo/static API routes.
+- `lib/email.ts` — follow-up email scaffolding.
+- `lib/calendar.ts` — calendar-event scaffolding.
+- `lib/speakers.ts` — speaker-profile scaffolding.
+- `lib/utils.ts` — `cn()` class-merge helper.
+
+### components
+- `components/auth-provider.tsx` — `useAuth()` context.
+- `components/auth-gate.tsx` — route protection / demo mode.
+- `components/top-nav.tsx` — dashboard navigation + sign out.
+- `components/floating-assistant.tsx` — floating assistant widget.
+- `components/glass-panel.tsx`, `insight-card.tsx`, `summary-card.tsx`,
+  `meeting-card.tsx`, `search-bar.tsx`, `transcript-block.tsx`,
+  `meeting-insights-transcript.tsx`, `mind-map-canvas.tsx`, `mind-map-node.tsx`,
+  `brand-logo.tsx`, `email-template.tsx` — dashboard UI.
+- `components/ui/button.tsx` — shared button.
+- `components/marketing/*` — `marketing-nav`, `marketing-footer`, `hero`,
+  `features-grid`, `how-it-works`, `tech-stack`, `screenshots`, `team`,
+  `cta-band`, `browser-mock`, `reveal`.
+
+### extension
+- `manifest.json`, `popup.html`, `popup.css`, `popup.js`, `background.js`,
+  `recording.html`, `recording.js`, `content.js`.
+
+### config & misc
+- `next.config.mjs` — Next + next-pwa config.
+- `package.json` — scripts and dependencies.
+- `tsconfig.json`, `postcss.config.mjs`, `components.json` — tooling config.
+- `scripts/build.js` — esbuild orchestrator for (currently absent) Electron
+  desktop app + TSX extension popup.
+- `supabase/schema.sql` — tables, indexes, and RLS policies.
+- `public/manifest.json`, icons, placeholder assets.
+- `README.md`.
+
+---
+
+## 11. Dependency Graph
+
+```
+app/layout.tsx
+  └─ components/auth-provider.tsx ── lib/supabase-browser.ts ── @supabase/supabase-js
+
+app/(app)/layout.tsx
+  ├─ components/top-nav.tsx ── components/auth-provider.tsx
+  ├─ components/floating-assistant.tsx
+  └─ components/auth-gate.tsx ── components/auth-provider.tsx
+
+app/(app)/page.tsx, meeting/[id], recording/[id], speakers, calendar, templates, settings
+  ├─ lib/api-client.ts ── lib/supabase-browser.ts
+  └─ components/* (cards, panels, insight/summary, mind-map)
+
+app/api/transcribe/route.ts
+  ├─ lib/supabase.ts ── @supabase/supabase-js
+  ├─ lib/email.ts (scaffolding, imported)
+  ├─ lib/calendar.ts (scaffolding, imported)
+  └─ lib/speakers.ts (scaffolding, imported)
+
+app/api/meetings, meeting/[id], speakers, calendar, templates
+  └─ lib/supabase.ts (getUserFromRequest, supabaseAdmin)
+
+app/api/summary, insights, mindmap, search
+  └─ lib/fakeData.ts
+
+app/home/page.tsx
+  └─ components/marketing/* ── framer-motion, lucide-react
+
+extension/recording.js ── extension/background.js ── POST /api/transcribe
+extension/popup.js ── chrome.storage.local (token)
+
+next.config.mjs ── next-pwa
+```
+
+External runtime deps: `next@16`, `react@19`, `@supabase/supabase-js`,
+`framer-motion`, `lucide-react`, `next-pwa`, `@vercel/analytics`, Tailwind v4,
+`class-variance-authority`, `clsx`, `tailwind-merge`.
+
+---
+
+## 12. System Architecture Diagram (text-based)
+
+```
+                        ┌─────────────────────────────────────────────┐
+                        │                  CLIENTS                     │
+                        │                                              │
+   ┌──────────────┐     │   ┌──────────────┐      ┌──────────────────┐ │
+   │  MV3 Browser │     │   │  Web Browser │      │  Installed PWA    │ │
+   │  Extension   │     │   │  (marketing  │      │  (standalone)     │ │
+   │              │     │   │   + dashboard)│     │                   │ │
+   └──────┬───────┘     │   └──────┬───────┘      └─────────┬─────────┘ │
+          │             └──────────┼────────────────────────┼──────────┘
+          │ POST audio             │ authFetch (GET)         │
+          │ Bearer token           │ Bearer token            │
+          ▼                        ▼                         ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │                  NEXT.JS APP (Vercel)                               │
+   │                                                                     │
+   │   app/(app)/* ─ dashboard pages      app/home, sign-in, success     │
+   │   components/* ─ UI + AuthProvider    components/marketing/*         │
+   │                                                                     │
+   │   app/api/* ── Route Handlers                                       │
+   │     auth+db: transcribe, meetings, meeting/[id], speakers,          │
+   │              calendar, templates                                    │
+   │     static : summary, insights, mindmap, search                    │
+   │                                                                     │
+   │   lib/supabase.ts (service-role) │ lib/supabase-browser.ts (anon)   │
+   └───────────────┬───────────────────────────────┬─────────────────────┘
+                   │ service-role key               │ anon key + session
+                   ▼                                ▼
+   ┌───────────────────────────────────────────────────────────────────┐
+   │                          SUPABASE                                   │
+   │   Auth (email/password, magic link)                                 │
+   │   Postgres: meetings, speakers, calendar_events                     │
+   │   Row Level Security: auth.uid() = user_id                          │
+   └───────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 13. Data Flow Diagram (text-based)
+
+```
+[Record]   Extension recording.js ── MediaRecorder ──▶ audio/webm Blob
+                │ runtime message (upload-recording)
+                ▼
+           background.js ── reads chrome.storage.local token
+                │ POST /api/transcribe  (Bearer token, audio/webm)
+                ▼
+[Persist]  /api/transcribe ── getUserFromRequest() ── supabaseAdmin()
+                │ INSERT meetings { id, user_id, summary, action_items, segments }
+                ▼
+           Supabase Postgres (RLS-protected)
+                ▲
+                │ SELECT ... WHERE user_id = auth user
+[Read]     /api/meetings, /api/meeting/[id], /api/speakers, /api/calendar
+                ▲
+                │ authFetch() with Bearer token
+                │
+[Render]   Dashboard pages ── React state ── glass UI
+
+[Demo]     /api/summary | /api/insights | /api/mindmap | /api/search
+                └─ lib/fakeData.ts ── static fixtures (no auth, no DB)
+```
+
+---
+
+## 14. Build & Deployment Instructions
+
+### Prerequisites
+- Node.js 18+ and **pnpm** (repo uses `pnpm-lock.yaml`).
+- A Supabase project (optional for demo mode, required for auth + persistence).
+
+### Environment variables
+| Variable                        | Used by            | Purpose                              |
+|---------------------------------|--------------------|--------------------------------------|
+| `NEXT_PUBLIC_SUPABASE_URL`      | browser + server   | Supabase project URL                 |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | browser            | anon client (sessions, RLS access)   |
+| `SUPABASE_SERVICE_ROLE_KEY`     | server API routes  | service-role client (bypasses RLS)   |
+
+When the public vars are absent, the app runs in **demo mode** (auth disabled,
+`AuthGate` passes through, sign-in shows a "not configured" notice).
+
+### Database setup
+- Run `supabase/schema.sql` in the Supabase SQL editor (or as a migration) to
+  create `meetings`, `speakers`, `calendar_events`, their indexes, and RLS
+  policies. The script is idempotent.
+
+### Local development
+```
+pnpm install
+pnpm dev          # Next.js dev server (PWA service worker disabled in dev)
+```
+
+### Production build
+```
+pnpm build        # next build (+ next-pwa service worker generation)
+pnpm start        # serve the production build
+```
+
+### Browser extension
+- Load `extension/` as an unpacked MV3 extension (`chrome://extensions` →
+  Developer mode → Load unpacked).
+- In the popup, paste the access token from the web app's `/settings`
+  "Extension access" card.
+- The upload URL is hard-coded to `http://localhost:3000/api/transcribe`; update
+  it for non-local backends.
+
+### Deployment
+- Deploy the Next.js app to Vercel; set the three environment variables in the
+  project settings. `host_permissions` in the extension manifest already include
+  `https://afterthought.vercel.app/*`.
+
+### Other scripts (currently non-functional — see Known Limitations)
+```
+pnpm build:desktop   # scripts/build.js — expects desktop-app/ and extension/popup.tsx
+pnpm desktop         # electron desktop-app/dist/main.js
+```
+
+---
+
+## 15. Known Limitations
+
+- **AI pipeline is a placeholder.** `/api/transcribe` returns hard-coded
+  transcript, summary, and action items. No real STT/LLM is invoked.
+- **Scaffolding not wired.** `lib/email.ts`, `lib/calendar.ts`, and
+  `lib/speakers.ts` only log; the `transcribe` route's calls to them are
+  commented out. `speakers`/`calendar` GET routes degrade to empty lists if
+  their tables are absent.
+- **Static demo endpoints.** `/api/summary`, `/api/insights`, `/api/mindmap`,
+  and `/api/search` serve fixture data from `lib/fakeData.ts` and are not
+  user-scoped or auth-gated.
+- **Hard-coded extension URL.** The extension uploads to
+  `http://localhost:3000/api/transcribe`; production use requires editing
+  `background.js`.
+- **Manual token handoff.** The extension is authenticated by copy-pasting the
+  Supabase access token; there is no OAuth handshake, and tokens expire.
+- **Desktop/Electron + TSX popup absent.** `scripts/build.js` references
+  `desktop-app/` and `extension/popup.tsx` which do not exist in the repository,
+  so `build:desktop` and `desktop` scripts will fail as-is.
+- **Service-role in route handlers.** API routes use the service-role key and
+  rely on application-code `user_id` filtering for ownership; a coding mistake
+  there would not be caught by RLS (which only guards anon-key access).
+- **No automated tests** are present in the repository.
+
+---
+
+## 16. Future Improvements
+
+- Replace the placeholder pipeline with real speech-to-text (e.g. Whisper) and an
+  LLM (GPT/Claude) for summaries, action items, and speaker diarization.
+- Activate the scaffolding: send follow-up emails, create calendar events, and
+  build speaker profiles automatically after transcription.
+- Make demo endpoints (`summary`, `insights`, `mindmap`, `search`) read real,
+  user-scoped data from Supabase with auth.
+- Add full-text / vector search over transcripts for the `/search` experience.
+- Replace manual extension token entry with a proper OAuth/session bridge and
+  automatic token refresh; make the backend URL configurable.
+- Add streaming upload + progress UI and large-file/long-meeting handling.
+- Introduce automated tests (unit for libs/route handlers, e2e for auth + upload).
+- Complete or remove the Electron desktop app and the TSX extension popup build
+  path so `scripts/build.js` matches the repository contents.
+- Add roles/sharing (team workspaces) on top of the per-user ownership model.
+```

@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Brain, Github, Globe, Mail } from 'lucide-react'
+import { Brain, GitBranch, Globe, Mail } from 'lucide-react'
 
 const GITHUB_URL = 'https://github.com/UmarMuhammad18/AfterThought'
 
@@ -44,7 +44,7 @@ export function MarketingFooter() {
               rel="noreferrer noopener"
               className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
             >
-              <Github className="size-4" />
+              <GitBranch className="size-4" />
               GitHub
             </a>
             <a

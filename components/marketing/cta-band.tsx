@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { ArrowRight, Chrome } from 'lucide-react'
+import { ArrowRight, Puzzle } from 'lucide-react'
 import { Reveal } from '@/components/marketing/reveal'
 
 export function CtaBand() {
@@ -26,7 +26,7 @@ export function CtaBand() {
               href="#"
               className="flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
             >
-              <Chrome className="size-4" />
+              <Puzzle className="size-4" />
               Install Extension
             </a>
           </div>

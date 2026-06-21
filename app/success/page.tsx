@@ -10,7 +10,7 @@ export default function SuccessPage() {
       <motion.div
         initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
         className="glass flex w-full max-w-md flex-col items-center gap-6 rounded-3xl p-10 text-center"
       >
         <Link href="/home" className="flex items-center gap-2 text-muted-foreground">

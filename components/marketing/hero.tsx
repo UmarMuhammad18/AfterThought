@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { motion } from 'framer-motion'
-import { ArrowRight, Chrome, Sparkles, Mic, ListChecks, Users } from 'lucide-react'
+import { ArrowRight, Puzzle, Sparkles, Mic, ListChecks, Users } from 'lucide-react'
 import { BrowserMock } from '@/components/marketing/browser-mock'
 
 const container = {
@@ -10,9 +10,11 @@ const container = {
   show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
 }
 
+const EASE = [0.22, 1, 0.36, 1] as const
+
 const item = {
   hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.22, 1, 0.36, 1] } },
+  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
 }
 
 export function Hero() {
@@ -59,7 +61,7 @@ export function Hero() {
             href="#install"
             className="flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
           >
-            <Chrome className="size-4" />
+            <Puzzle className="size-4" />
             Install Extension
           </a>
         </motion.div>
@@ -68,7 +70,7 @@ export function Hero() {
       <motion.div
         initial={{ opacity: 0, y: 40, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.8, delay: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
         className="mx-auto mt-16 w-full max-w-5xl"
       >
         <BrowserMock label="afterthought.ai/dashboard">

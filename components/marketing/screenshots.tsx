@@ -1,10 +1,10 @@
-import { LayoutDashboard, Chrome, AudioLines, Settings } from 'lucide-react'
+import { LayoutDashboard, Puzzle, AudioLines, Settings } from 'lucide-react'
 import { Reveal } from '@/components/marketing/reveal'
 import { BrowserMock } from '@/components/marketing/browser-mock'
 
 const SHOTS = [
   { icon: LayoutDashboard, label: 'afterthought.ai/dashboard', title: 'Dashboard', rows: 4 },
-  { icon: Chrome, label: 'AfterThought extension', title: 'Extension', rows: 3 },
+  { icon: Puzzle, label: 'AfterThought extension', title: 'Extension', rows: 3 },
   { icon: AudioLines, label: 'afterthought.ai/recording', title: 'Recording', rows: 5 },
   { icon: Settings, label: 'afterthought.ai/settings', title: 'Settings', rows: 4 },
 ]

@@ -1,4 +1,4 @@
-import { Triangle, Database, Cloud, AudioLines, Brain, Chrome, Wind } from 'lucide-react'
+import { Triangle, Database, Cloud, AudioLines, Brain, Puzzle, Wind } from 'lucide-react'
 import { Reveal } from '@/components/marketing/reveal'
 
 const STACK = [
@@ -7,7 +7,7 @@ const STACK = [
   { icon: Cloud, label: 'Vercel' },
   { icon: AudioLines, label: 'Whisper' },
   { icon: Brain, label: 'GPT / Claude' },
-  { icon: Chrome, label: 'Chrome Extension' },
+  { icon: Puzzle, label: 'Chrome Extension' },
   { icon: Wind, label: 'TailwindCSS' },
 ]
 

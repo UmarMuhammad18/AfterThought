@@ -1,4 +1,4 @@
-import { Code2, BrainCircuit, Github } from 'lucide-react'
+import { Code2, BrainCircuit, GitBranch } from 'lucide-react'
 import { Reveal } from '@/components/marketing/reveal'
 
 const TEAM = [
@@ -56,7 +56,7 @@ export function Team() {
                   rel="noreferrer noopener"
                   className="mt-auto inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
                 >
-                  <Github className="size-4" />
+                  <GitBranch className="size-4" />
                   GitHub
                 </a>
               </article>

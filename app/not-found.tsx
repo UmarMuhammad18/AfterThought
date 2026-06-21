@@ -10,7 +10,7 @@ export default function NotFound() {
       <motion.div
         initial={{ opacity: 0, y: 24 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
         className="flex w-full max-w-md flex-col items-center gap-6 text-center"
       >
         <Link href="/home" className="flex items-center gap-2 text-muted-foreground">
@@ -23,7 +23,7 @@ export default function NotFound() {
         <motion.h1
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+          transition={{ delay: 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] as const }}
           className="font-heading text-7xl font-bold tracking-tight text-primary sm:text-8xl"
         >
           404

@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Velmeir — Local Demo</title>
+    <style>
+      html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Arial}
+      body{background:linear-gradient(180deg,#060814 0%,#071027 60%);color:#e8eefc;display:flex;align-items:center;justify-content:center}
+      .card{width:920px;max-width:92%;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);backdrop-filter:blur(6px);border-radius:20px;padding:36px;box-shadow:0 20px 60px rgba(8,12,24,0.6)}
+      h1{margin:0;font-size:28px}
+      p{color:#b8c1d9;margin-top:8px}
+      .cmd{margin-top:22px;display:flex;gap:12px}
+      .fake-input{flex:1;padding:14px 18px;border-radius:28px;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.03);color:#dfe8ff}
+      .btn{padding:12px 18px;border-radius:20px;background:linear-gradient(180deg,#8b8af5,#6f6ee8);color:#071027;font-weight:600;border:none}
+      .links{margin-top:18px;display:flex;gap:12px}
+      a.link{color:#dfe8ff;text-decoration:none;padding:10px 14px;border-radius:12px;background:rgba(255,255,255,0.02)}
+      footer{margin-top:18px;color:#9aa6c3;font-size:13px}
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <h1>Velmeir — Local Demo</h1>
+          <p>A calm AI workspace — the frontend is running. Use the links below to explore pages.</p>
+        </div>
+      </div>
+      <div class="cmd">
+        <div class="fake-input">Try: "Show my calendar" or "Add a task to review design"</div>
+        <button class="btn" onclick="location.href='/login'">Open App</button>
+      </div>
+      <div class="links">
+        <a class="link" href="/tasks">Tasks</a>
+        <a class="link" href="/calendar">Calendar</a>
+        <a class="link" href="/goals">Goals</a>
+        <a class="link" href="/notes">Notes</a>
+      </div>
+      <footer>Dev server: Vite (hot reload). If a page is blank, open the browser console (F12) to view errors.</footer>
+    </div>
+  </body>
+</html>

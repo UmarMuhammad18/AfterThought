@@ -1,0 +1,41 @@
+SAMPLE 1: Product API Redesign
+
+Alice: The current API response is too slow for mobile clients.
+Ben: I can redesign the API payload and remove the duplicated fields.
+Carla: Let's agree to ship the redesigned API next Tuesday.
+Alice: Ben owns the redesign. Carla, can you update the frontend integration before Friday?
+Carla: Yes, but I need the final response schema by Wednesday.
+Ben: Blocker is that the analytics team has not confirmed which tracking fields are required.
+
+SAMPLE 2: Marketing Launch Planning
+
+Maya: The launch campaign needs to go live on June 28.
+Leo: I will finish the landing page copy by Monday.
+Priya: I can prepare the email sequence by next Wednesday.
+Maya: Decision: we will focus the first campaign on startup founders, not enterprise buyers.
+Leo: The blocker is design approval. We still need final hero images from the brand team.
+
+SAMPLE 3: Customer Support Review
+
+Nora: We received 42 tickets about password reset failures this week.
+Sam: The root cause appears to be expired email links.
+Nora: Decision: reset links should expire after 30 minutes instead of 10 minutes.
+Ibrahim: I will update the backend token setting by Thursday.
+Sam: I will rewrite the help center article before Friday.
+Nora: Blocker: QA is unavailable until tomorrow afternoon.
+
+SAMPLE 4: Sprint Planning
+
+Elena: This sprint should focus on billing reliability.
+Owen: I will add retry logic for failed Stripe webhooks by next Tuesday.
+Tara: I will create dashboard alerts by Friday.
+Elena: Decision: we are postponing the invoice redesign until next sprint.
+Owen: The main blocker is missing access to the staging Stripe account.
+
+SAMPLE 5: Hiring Sync
+
+Jon: We need to fill the senior frontend role by the end of July.
+Amira: I will screen the current candidate list by Wednesday.
+Grace: I will schedule technical interviews before next Friday.
+Jon: Decision: we will prioritize React and accessibility experience over animation experience.
+Amira: Blocker: two candidate resumes are missing portfolio links.

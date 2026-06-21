@@ -1,0 +1,1062 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AfterThought AI</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #edf2f7;
+        --panel: #ffffff;
+        --ink: #111827;
+        --muted: #64748b;
+        --line: #d7e0ea;
+        --accent: #2563eb;
+        --accent-dark: #1e40af;
+        --green: #047857;
+        --amber: #a16207;
+        --red: #be123c;
+        --purple: #6d28d9;
+        --paper: #fffdf6;
+        --danger: #b42318;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        background:
+          linear-gradient(rgba(255, 255, 255, 0.72) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.72) 1px, transparent 1px),
+          var(--bg);
+        background-size: 30px 30px;
+        color: var(--ink);
+        font-family:
+          Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+      }
+
+      main {
+        width: min(1500px, calc(100vw - 28px));
+        margin: 0 auto;
+        padding: 22px 0;
+      }
+
+      header {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 14px;
+      }
+
+      h1 {
+        margin: 0;
+        font-size: 32px;
+        line-height: 1.1;
+      }
+
+      .subtitle {
+        margin: 7px 0 0;
+        color: var(--muted);
+        line-height: 1.4;
+      }
+
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 36px;
+        padding: 7px 13px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.9);
+        color: #475569;
+        font-size: 14px;
+        white-space: nowrap;
+      }
+
+      .dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--green);
+      }
+
+      .workbench {
+        display: grid;
+        grid-template-columns: minmax(390px, 0.74fr) minmax(620px, 1.26fr);
+        gap: 16px;
+        align-items: start;
+      }
+
+      .left-stack {
+        display: grid;
+        gap: 14px;
+        position: sticky;
+        top: 16px;
+      }
+
+      section {
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        box-shadow: 0 14px 38px rgba(15, 23, 42, 0.06);
+      }
+
+      .panel {
+        padding: 16px;
+      }
+
+      .panel-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        margin-bottom: 10px;
+      }
+
+      .panel-title {
+        margin: 0;
+        font-size: 15px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #334155;
+        font-size: 14px;
+        font-weight: 750;
+      }
+
+      textarea,
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #ffffff;
+        color: var(--ink);
+        font: inherit;
+        line-height: 1.5;
+        outline: none;
+      }
+
+      textarea {
+        min-height: 230px;
+        padding: 13px;
+        resize: vertical;
+      }
+
+      input {
+        height: 42px;
+        padding: 0 12px;
+      }
+
+      textarea:focus,
+      input:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+      }
+
+      .ask-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 10px;
+        margin-top: 12px;
+        align-items: end;
+      }
+
+      .button-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        min-height: 42px;
+        border: 0;
+        border-radius: 8px;
+        padding: 0 15px;
+        background: var(--accent);
+        color: white;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        transition:
+          transform 140ms ease,
+          background 140ms ease,
+          box-shadow 140ms ease;
+      }
+
+      button:hover {
+        background: var(--accent-dark);
+        transform: translateY(-1px);
+      }
+
+      button.secondary {
+        border: 1px solid var(--line);
+        background: white;
+        color: var(--ink);
+      }
+
+      button.secondary:hover {
+        background: #f1f5f9;
+      }
+
+      button:disabled {
+        cursor: wait;
+        opacity: 0.68;
+        transform: none;
+      }
+
+      .transcript-viewer {
+        max-height: 430px;
+        overflow: auto;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: #f8fafc;
+        padding: 10px;
+        scroll-behavior: smooth;
+      }
+
+      .line {
+        display: grid;
+        grid-template-columns: 34px 1fr;
+        gap: 10px;
+        padding: 9px 10px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        color: #334155;
+        line-height: 1.45;
+        transition:
+          background 180ms ease,
+          border-color 180ms ease,
+          box-shadow 180ms ease,
+          transform 180ms ease;
+      }
+
+      .line + .line {
+        margin-top: 6px;
+      }
+
+      .line-number {
+        color: #94a3b8;
+        font-size: 12px;
+        text-align: right;
+        padding-top: 2px;
+      }
+
+      .line.active {
+        background: #fff7d6;
+        border-color: #f2c94c;
+        box-shadow: 0 8px 20px rgba(161, 98, 7, 0.16);
+        transform: translateX(2px);
+      }
+
+      mark {
+        border-radius: 5px;
+        padding: 1px 3px;
+        background: #fde68a;
+        color: #111827;
+      }
+
+      .output {
+        min-height: 720px;
+        overflow: hidden;
+      }
+
+      .output-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 17px;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .output-head h2 {
+        margin: 0;
+        font-size: 18px;
+      }
+
+      #output {
+        padding: 16px;
+      }
+
+      .empty {
+        color: var(--muted);
+        line-height: 1.5;
+      }
+
+      .thinking {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding: 18px;
+        border: 1px solid #eadfbf;
+        border-radius: 8px;
+        background: var(--paper);
+      }
+
+      .thinking-title {
+        margin: 0;
+        font-weight: 900;
+      }
+
+      .thinking-track {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .thinking-step {
+        position: relative;
+        min-height: 70px;
+        padding: 13px;
+        border: 1px solid #dbeafe;
+        border-radius: 8px;
+        background: white;
+        color: #475569;
+      }
+
+      .thinking-step::before {
+        content: "";
+        display: block;
+        width: 18px;
+        height: 18px;
+        margin-bottom: 9px;
+        border-radius: 999px;
+        border: 2px solid #93c5fd;
+        animation: pulse 1.1s ease-in-out infinite;
+      }
+
+      .thinking-step:nth-child(2)::before {
+        animation-delay: 0.18s;
+      }
+
+      .thinking-step:nth-child(3)::before {
+        animation-delay: 0.36s;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(0.9);
+          opacity: 0.55;
+        }
+        50% {
+          transform: scale(1.08);
+          opacity: 1;
+        }
+      }
+
+      .analysis-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 280px;
+        gap: 14px;
+        align-items: start;
+      }
+
+      .tree-board {
+        min-height: 570px;
+        border: 1px solid #e4dcc7;
+        border-radius: 8px;
+        padding: 18px;
+        background:
+          radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.08) 1px, transparent 0),
+          var(--paper);
+        background-size: 22px 22px;
+        overflow: auto;
+      }
+
+      .tree {
+        min-width: 640px;
+      }
+
+      .root-node {
+        width: fit-content;
+        max-width: 520px;
+        margin: 0 auto;
+        padding: 13px 18px;
+        border: 2px solid #172554;
+        border-radius: 8px;
+        background: white;
+        box-shadow: 5px 5px 0 rgba(15, 23, 42, 0.16);
+        text-align: center;
+        font-weight: 950;
+      }
+
+      .connector {
+        width: 2px;
+        height: 28px;
+        margin: 0 auto;
+        background: #94a3b8;
+      }
+
+      .category-row {
+        position: relative;
+        display: grid;
+        grid-template-columns: repeat(5, minmax(118px, 1fr));
+        gap: 12px;
+      }
+
+      .category-row::before {
+        content: "";
+        position: absolute;
+        left: 9%;
+        right: 9%;
+        top: -15px;
+        height: 2px;
+        background: #94a3b8;
+      }
+
+      .category {
+        position: relative;
+        display: grid;
+        gap: 10px;
+        align-content: start;
+      }
+
+      .category::before {
+        content: "";
+        position: absolute;
+        top: -15px;
+        left: 50%;
+        width: 2px;
+        height: 15px;
+        background: #94a3b8;
+      }
+
+      .category-title {
+        min-height: 48px;
+        display: grid;
+        place-items: center;
+        border: 2px solid currentColor;
+        border-radius: 8px;
+        background: white;
+        font-weight: 900;
+        text-align: center;
+        padding: 8px;
+      }
+
+      .category.people {
+        color: var(--accent-dark);
+      }
+
+      .category.decisions {
+        color: var(--green);
+      }
+
+      .category.actions {
+        color: var(--purple);
+      }
+
+      .category.deadlines {
+        color: var(--amber);
+      }
+
+      .category.blockers {
+        color: var(--red);
+      }
+
+      .leaf-list {
+        display: grid;
+        gap: 8px;
+      }
+
+      .leaf {
+        min-height: 38px;
+        border: 1px solid currentColor;
+        border-radius: 8px;
+        padding: 8px 9px;
+        background: rgba(255, 255, 255, 0.9);
+        color: currentColor;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.25;
+        overflow-wrap: anywhere;
+      }
+
+      .leaf:hover,
+      .leaf.active {
+        background: currentColor;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.14);
+      }
+
+      .leaf span {
+        color: currentColor;
+      }
+
+      .leaf:hover span,
+      .leaf.active span {
+        color: white;
+      }
+
+      .detail-panel {
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        padding: 14px;
+        background: #f8fafc;
+      }
+
+      .detail-panel h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .detail-panel p {
+        margin: 0;
+        color: #334155;
+        line-height: 1.55;
+      }
+
+      .summary-card {
+        margin-top: 14px;
+        padding: 14px;
+        border: 1px solid var(--line);
+        border-radius: 8px;
+        background: white;
+      }
+
+      .summary-card h3,
+      .answer-card h3 {
+        margin: 0 0 8px;
+        font-size: 15px;
+      }
+
+      .summary-card p {
+        margin: 0;
+        line-height: 1.6;
+        color: #334155;
+      }
+
+      .answer-card {
+        border-left: 4px solid var(--accent);
+        padding: 14px;
+        background: #eff6ff;
+        border-radius: 8px;
+      }
+
+      .answer-list {
+        display: grid;
+        gap: 10px;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+      }
+
+      .answer-list li {
+        padding: 10px 12px;
+        border: 1px solid #bfdbfe;
+        border-radius: 8px;
+        background: white;
+        line-height: 1.5;
+      }
+
+      .answer-card p {
+        margin: 0;
+        line-height: 1.6;
+        white-space: pre-line;
+      }
+
+      .error {
+        color: var(--danger);
+        background: #fff3f0;
+        border: 1px solid #fecdca;
+        border-radius: 8px;
+        padding: 12px;
+        line-height: 1.5;
+      }
+
+      @media (max-width: 1120px) {
+        .workbench,
+        .analysis-grid {
+          grid-template-columns: 1fr;
+        }
+
+        .left-stack {
+          position: static;
+        }
+      }
+
+      @media (max-width: 720px) {
+        main {
+          width: min(100vw - 18px, 720px);
+          padding-top: 16px;
+        }
+
+        header,
+        .ask-row,
+        .thinking-track {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+
+        .tree {
+          min-width: 600px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <h1>AfterThought AI</h1>
+          <p class="subtitle">Paste a transcript, generate a meeting tree, then click any leaf to jump to the evidence.</p>
+        </div>
+        <div class="status"><span class="dot"></span><span id="statusText">Ready</span></div>
+      </header>
+
+      <div class="workbench">
+        <div class="left-stack">
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Input</h2>
+              <span class="empty">Paste or edit freely</span>
+            </div>
+            <label for="transcript">Meeting transcript</label>
+            <textarea id="transcript" spellcheck="true">Alice: The API is too slow for mobile users.
+Ben: I will redesign the API response and remove duplicate fields before Friday.
+Carla: We agreed to deploy the new version next Tuesday.
+Alice: Carla, can you update the frontend integration by Friday?
+Carla: Yes, but I need the final response schema by Wednesday.
+Ben: The blocker is that analytics has not confirmed which tracking fields are required.</textarea>
+
+            <div class="ask-row">
+              <div>
+                <label for="question">Ask a question</label>
+                <input id="question" value="Who owns the API redesign?" />
+              </div>
+              <button id="askButton" type="button">Ask</button>
+            </div>
+
+            <div class="button-row">
+              <button id="analyzeButton" type="button">Analyze transcript</button>
+              <button id="sampleButton" class="secondary" type="button">Load sample</button>
+              <button id="clearButton" class="secondary" type="button">Clear</button>
+            </div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-head">
+              <h2 class="panel-title">Transcript evidence</h2>
+              <span class="empty" id="evidenceHint">Click tree leaves to jump here</span>
+            </div>
+            <div class="transcript-viewer" id="transcriptViewer"></div>
+          </section>
+        </div>
+
+        <section class="output">
+          <div class="output-head">
+            <h2>Meeting tree</h2>
+            <span class="empty">Main topic to subtopics</span>
+          </div>
+          <div id="output" class="empty">Analyze a transcript to build the summary tree.</div>
+        </section>
+      </div>
+    </main>
+
+    <script>
+      const transcriptEl = document.querySelector("#transcript");
+      const questionEl = document.querySelector("#question");
+      const outputEl = document.querySelector("#output");
+      const statusText = document.querySelector("#statusText");
+      const analyzeButton = document.querySelector("#analyzeButton");
+      const askButton = document.querySelector("#askButton");
+      const sampleButton = document.querySelector("#sampleButton");
+      const clearButton = document.querySelector("#clearButton");
+      const transcriptViewer = document.querySelector("#transcriptViewer");
+      const evidenceHint = document.querySelector("#evidenceHint");
+
+      const sampleTranscript = transcriptEl.value;
+      let transcriptLines = [];
+
+      function setBusy(isBusy, label = "Ready") {
+        statusText.textContent = label;
+        analyzeButton.disabled = isBusy;
+        askButton.disabled = isBusy;
+      }
+
+      function escapeHtml(value) {
+        return String(value ?? "")
+          .replaceAll("&", "&amp;")
+          .replaceAll("<", "&lt;")
+          .replaceAll(">", "&gt;")
+          .replaceAll('"', "&quot;")
+          .replaceAll("'", "&#039;");
+      }
+
+      function compact(value, max = 44) {
+        const text = String(value || "").trim();
+        if (text.length <= max) return text;
+        return `${text.slice(0, max - 1).trim()}...`;
+      }
+
+      function tokenize(value) {
+        return String(value || "")
+          .toLowerCase()
+          .replace(/[^a-z0-9\s]/g, " ")
+          .split(/\s+/)
+          .filter((word) => word.length > 2);
+      }
+
+      function renderTranscript(highlightIndex = -1, terms = []) {
+        const rawLines = transcriptEl.value.split(/\r?\n/);
+        transcriptLines = rawLines
+          .map((text, index) => ({ text: text.trim(), originalIndex: index }))
+          .filter((line) => line.text);
+
+        if (!transcriptLines.length) {
+          transcriptViewer.innerHTML = "<p class='empty'>Paste a transcript to see evidence lines.</p>";
+          return;
+        }
+
+        transcriptViewer.innerHTML = transcriptLines
+          .map((line, index) => {
+            const content = highlightText(line.text, index === highlightIndex ? terms : []);
+            return `
+              <div class="line ${index === highlightIndex ? "active" : ""}" data-line="${index}">
+                <div class="line-number">${index + 1}</div>
+                <div>${content}</div>
+              </div>
+            `;
+          })
+          .join("");
+
+        if (highlightIndex >= 0) {
+          const activeLine = transcriptViewer.querySelector(`[data-line="${highlightIndex}"]`);
+          activeLine?.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+
+      function highlightText(text, terms) {
+        let html = escapeHtml(text);
+        const cleanTerms = [...new Set(terms.filter((term) => term.length > 2).slice(0, 6))];
+        cleanTerms.forEach((term) => {
+          const safe = term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          html = html.replace(new RegExp(`(${safe})`, "ig"), "<mark>$1</mark>");
+        });
+        return html;
+      }
+
+      function findBestLine(searchText) {
+        const terms = tokenize(searchText);
+        if (!transcriptLines.length || !terms.length) return { index: -1, terms: [] };
+
+        let bestIndex = -1;
+        let bestScore = 0;
+
+        transcriptLines.forEach((line, index) => {
+          const lineText = line.text.toLowerCase();
+          const score = terms.reduce((total, term) => total + (lineText.includes(term) ? 1 : 0), 0);
+          if (score > bestScore) {
+            bestScore = score;
+            bestIndex = index;
+          }
+        });
+
+        return { index: bestIndex, terms: terms.filter((term) => transcriptLines[bestIndex]?.text.toLowerCase().includes(term)) };
+      }
+
+      function showThinking(mode) {
+        const steps =
+          mode === "analysis"
+            ? ["Reading the transcript", "Finding main topic branches", "Building evidence links"]
+            : ["Reading the question", "Finding matching lines", "Formatting the answer"];
+
+        outputEl.className = "";
+        outputEl.innerHTML = `
+          <div class="thinking">
+            <p class="thinking-title">Thinking through the meeting...</p>
+            <div class="thinking-track">
+              ${steps.map((step) => `<div class="thinking-step">${escapeHtml(step)}</div>`).join("")}
+            </div>
+          </div>
+        `;
+      }
+
+      function meetingTitle(data) {
+        const firstDecision = data.decisions?.[0] || "";
+        const firstAction = data.action_items?.[0]?.task || "";
+        const source = firstDecision || firstAction || data.summary || "Meeting Breakdown";
+        return compact(source.replace(/^(the team agreed to|decision:)/i, "").trim(), 54);
+      }
+
+      function buildTree(data) {
+        return [
+          {
+            title: "People",
+            className: "people",
+            leaves: (data.participants || []).map((name) => ({
+              label: name,
+              detail: `${name} was part of the discussion.`,
+              search: name,
+            })),
+          },
+          {
+            title: "Decisions",
+            className: "decisions",
+            leaves: (data.decisions || []).map((decision) => ({
+              label: compact(decision, 42),
+              detail: decision,
+              search: decision,
+            })),
+          },
+          {
+            title: "Actions",
+            className: "actions",
+            leaves: (data.action_items || []).map((item) => ({
+              label: item.owner ? `${item.owner}: ${compact(item.task, 28)}` : compact(item.task, 38),
+              detail: `${item.owner || "Unassigned"} - ${item.task || "No task"}${item.deadline ? ` by ${item.deadline}` : ""}`,
+              search: `${item.owner || ""} ${item.task || ""} ${item.deadline || ""}`,
+            })),
+          },
+          {
+            title: "Deadlines",
+            className: "deadlines",
+            leaves: (data.deadlines || []).map((deadline) => ({
+              label: deadline,
+              detail: `Deadline mentioned: ${deadline}`,
+              search: deadline,
+            })),
+          },
+          {
+            title: "Blockers",
+            className: "blockers",
+            leaves: (data.blockers || []).map((blocker) => ({
+              label: compact(blocker, 42),
+              detail: blocker,
+              search: blocker,
+            })),
+          },
+        ];
+      }
+
+      function renderAnalysis(data) {
+        const tree = buildTree(data);
+        const title = meetingTitle(data);
+        const firstLeaf = tree.flatMap((branch) => branch.leaves.map((leaf) => ({ ...leaf, branch: branch.title })))[0];
+
+        outputEl.className = "";
+        outputEl.innerHTML = `
+          <div class="analysis-grid">
+            <div class="tree-board">
+              <div class="tree">
+                <div class="root-node">${escapeHtml(title)}</div>
+                <div class="connector"></div>
+                <div class="category-row">
+                  ${tree
+                    .map(
+                      (branch) => `
+                        <div class="category ${branch.className}">
+                          <div class="category-title">${escapeHtml(branch.title)}</div>
+                          <div class="leaf-list">
+                            ${
+                              branch.leaves.length
+                                ? branch.leaves
+                                    .map(
+                                      (leaf) => `
+                                        <button class="leaf" type="button"
+                                          data-branch="${escapeHtml(branch.title)}"
+                                          data-label="${escapeHtml(leaf.label)}"
+                                          data-detail="${escapeHtml(leaf.detail)}"
+                                          data-search="${escapeHtml(leaf.search)}">
+                                          <span>${escapeHtml(leaf.label)}</span>
+                                        </button>
+                                      `,
+                                    )
+                                    .join("")
+                                : "<span class='empty'>None</span>"
+                            }
+                          </div>
+                        </div>
+                      `,
+                    )
+                    .join("")}
+                </div>
+              </div>
+            </div>
+
+            <aside class="detail-panel" id="detailPanel">
+              <h3>${escapeHtml(firstLeaf ? `${firstLeaf.branch}: ${firstLeaf.label}` : "Click a subtopic")}</h3>
+              <p>${escapeHtml(firstLeaf ? firstLeaf.detail : "Select a leaf in the tree to inspect it and jump to transcript evidence.")}</p>
+            </aside>
+          </div>
+
+          <div class="summary-card">
+            <h3>Overall meeting</h3>
+            <p>${escapeHtml(data.summary || "No summary returned.")}</p>
+          </div>
+        `;
+
+        const leaves = outputEl.querySelectorAll(".leaf");
+        const detailPanel = outputEl.querySelector("#detailPanel");
+
+        leaves.forEach((leaf, index) => {
+          if (index === 0) leaf.classList.add("active");
+          leaf.addEventListener("click", () => {
+            leaves.forEach((item) => item.classList.remove("active"));
+            leaf.classList.add("active");
+
+            detailPanel.innerHTML = `
+              <h3>${escapeHtml(leaf.dataset.branch)}: ${escapeHtml(leaf.dataset.label)}</h3>
+              <p>${escapeHtml(leaf.dataset.detail)}</p>
+            `;
+
+            const match = findBestLine(leaf.dataset.search || leaf.dataset.detail || leaf.dataset.label);
+            renderTranscript(match.index, match.terms);
+            evidenceHint.textContent = match.index >= 0 ? `Highlighted line ${match.index + 1}` : "No direct line found";
+          });
+        });
+
+        if (firstLeaf) {
+          const match = findBestLine(firstLeaf.search || firstLeaf.detail);
+          renderTranscript(match.index, match.terms);
+        }
+      }
+
+      function splitAnswer(answer) {
+        const text = String(answer || "").trim();
+        if (!text) return [];
+
+        const explicitLines = text
+          .split(/\r?\n/)
+          .map((line) => line.replace(/^[-*]\s*/, "").trim())
+          .filter(Boolean);
+
+        if (explicitLines.length > 1) return explicitLines;
+
+        const speakerMatches = [...text.matchAll(/\b[A-Z][A-Za-z .'-]{0,28}:\s*/g)];
+        if (speakerMatches.length > 1) {
+          return speakerMatches
+            .map((match, index) => {
+              const start = match.index;
+              const end = speakerMatches[index + 1]?.index ?? text.length;
+              return text.slice(start, end).trim();
+            })
+            .filter(Boolean);
+        }
+
+        const sentenceParts = text
+          .split(/(?<=[.!?])\s+(?=[A-Z0-9])/)
+          .map((part) => part.trim())
+          .filter(Boolean);
+
+        return sentenceParts.length > 2 ? sentenceParts : [text];
+      }
+
+      function renderAnswer(data) {
+        const items = splitAnswer(data.answer);
+        outputEl.className = "";
+        outputEl.innerHTML = `
+          <div class="answer-card">
+            <h3>Answer</h3>
+            ${
+              items.length > 1
+                ? `<ul class="answer-list">${items.map((item) => `<li>${escapeHtml(item)}</li>`).join("")}</ul>`
+                : `<p>${escapeHtml(items[0] || "No answer returned.")}</p>`
+            }
+          </div>
+        `;
+      }
+
+      function renderError(message) {
+        outputEl.className = "error";
+        outputEl.textContent = message;
+      }
+
+      async function postJson(url, body) {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+
+        const text = await response.text();
+        const data = text ? JSON.parse(text) : {};
+
+        if (!response.ok) {
+          throw new Error(data.detail || "Request failed.");
+        }
+
+        return data;
+      }
+
+      analyzeButton.addEventListener("click", async () => {
+        const transcript = transcriptEl.value.trim();
+        if (!transcript) {
+          renderError("Paste a transcript first.");
+          return;
+        }
+
+        renderTranscript();
+        setBusy(true, "Analyzing...");
+        showThinking("analysis");
+
+        try {
+          const data = await postJson("/analyze", { transcript });
+          renderAnalysis(data);
+          setBusy(false, "Analysis complete");
+        } catch (error) {
+          renderError(error.message);
+          setBusy(false, "Error");
+        }
+      });
+
+      askButton.addEventListener("click", async () => {
+        const transcript = transcriptEl.value.trim();
+        const question = questionEl.value.trim();
+        if (!transcript || !question) {
+          renderError("Paste a transcript and enter a question first.");
+          return;
+        }
+
+        renderTranscript();
+        setBusy(true, "Asking...");
+        showThinking("question");
+
+        try {
+          const data = await postJson("/ask", { transcript, question });
+          renderAnswer(data);
+          setBusy(false, "Answer ready");
+        } catch (error) {
+          renderError(error.message);
+          setBusy(false, "Error");
+        }
+      });
+
+      transcriptEl.addEventListener("input", () => {
+        renderTranscript();
+        evidenceHint.textContent = "Transcript updated";
+      });
+
+      sampleButton.addEventListener("click", () => {
+        transcriptEl.value = sampleTranscript;
+        questionEl.value = "Who owns the API redesign?";
+        outputEl.className = "empty";
+        outputEl.textContent = "Analyze a transcript to build the summary tree.";
+        evidenceHint.textContent = "Click tree leaves to jump here";
+        statusText.textContent = "Ready";
+        renderTranscript();
+      });
+
+      clearButton.addEventListener("click", () => {
+        transcriptEl.value = "";
+        questionEl.value = "";
+        outputEl.className = "empty";
+        outputEl.textContent = "Analyze a transcript to build the summary tree.";
+        evidenceHint.textContent = "Click tree leaves to jump here";
+        statusText.textContent = "Ready";
+        renderTranscript();
+      });
+
+      renderTranscript();
+    </script>
+  </body>
+</html>

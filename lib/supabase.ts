@@ -1,4 +1,5 @@
 import { createClient, type User } from "@supabase/supabase-js"
+import { DEMO_TOKEN, getDemoUser, isDemoLoginEnabled } from "./demo"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -19,6 +20,15 @@ export function supabaseAdmin() {
  */
 export async function getUserFromToken(token: string | null | undefined): Promise<User | null> {
   if (!token) return null
+
+  // Demo login mode (temporary, dev-only). When DEMO_LOGIN_ENABLED=true and the
+  // request carries the hardcoded demo token, treat it as the demo user and
+  // skip Supabase validation entirely. This branch is unreachable in production
+  // unless the flag is explicitly set, so real JWT validation is unaffected.
+  if (isDemoLoginEnabled() && token === DEMO_TOKEN) {
+    return getDemoUser()
+  }
+
   try {
     const { data, error } = await supabaseAdmin().auth.getUser(token)
     if (error || !data?.user) return null

@@ -32,7 +32,16 @@
 
       <hr class="divider" />
 
-      <label for="tokenInput" class="field-label">Access token</label>
+      <label for="baseUrlInput" class="field-label">App URL</label>
+      <input
+        id="baseUrlInput"
+        class="token-input"
+        type="url"
+        spellcheck="false"
+        placeholder="http://localhost:3000"
+      />
+
+      <label for="tokenInput" class="field-label" style="margin-top: 10px;">Access token</label>
       <textarea
         id="tokenInput"
         class="token-input"

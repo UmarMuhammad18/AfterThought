@@ -16,7 +16,8 @@ export async function POST(req: Request) {
   try {
     const audio = await req.arrayBuffer()
 
-    if (!audio) {
+    // arrayBuffer() always returns an ArrayBuffer (never null), so check byteLength.
+    if (audio.byteLength === 0) {
       return NextResponse.json(
         { ok: false, error: "No audio received" },
         { status: 400 }

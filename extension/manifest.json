@@ -14,11 +14,11 @@
   "permissions": [
     "tabs",
     "activeTab",
-    "storage",
-    "microphone"
+    "storage"
   ],
   "host_permissions": [
     "http://localhost:3000/*",
-    "https://afterthought.vercel.app/*"
+    "https://*.vercel.app/*",
+    "https://afterthought.app/*"
   ]
 }

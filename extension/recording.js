@@ -1,13 +1,14 @@
 // recording.js
 
-// Base URL of the AfterThought web app. Keep in sync with manifest host_permissions.
-const API_BASE = "http://localhost:3000";
-const UPLOAD_URL = API_BASE + "/api/transcribe";
 const TOKEN_KEY = "afterthought_access_token";
+const BASE_URL_KEY = "afterthought_base_url";
+const DEFAULT_BASE_URL = "http://localhost:3000";
 
 let mediaRecorder = null;
 let chunks = [];
 let activeStream = null;
+// Resolved once storage is read; used by uploadRecording and the redirect.
+let apiBase = DEFAULT_BASE_URL;
 
 function getBrowser() {
   if (typeof chrome !== "undefined") return chrome;
@@ -50,16 +51,11 @@ function clearBanners() {
   successBanner.classList.remove("show");
 }
 
-// Read the saved Supabase access token from extension storage.
-function getAccessToken() {
+// Read a value from extension storage.
+function storageGet(keys) {
   return new Promise((resolve) => {
-    if (!browserApi?.storage?.local) {
-      resolve(null);
-      return;
-    }
-    browserApi.storage.local.get([TOKEN_KEY], (result) => {
-      resolve(result?.[TOKEN_KEY] || null);
-    });
+    if (!browserApi?.storage?.local) { resolve({}); return; }
+    browserApi.storage.local.get(keys, (result) => resolve(result || {}));
   });
 }
 
@@ -70,26 +66,43 @@ function stopStream() {
   }
 }
 
-// Upload the recorded audio directly from this page. The Blob stays in this
-// context (passing it through runtime.sendMessage would serialize it to an
-// empty object), so the request body is always a valid binary payload.
+// Pick the best supported mimeType for MediaRecorder across browsers.
+function getSupportedMimeType() {
+  const candidates = [
+    "audio/webm;codecs=opus",
+    "audio/webm",
+    "audio/ogg;codecs=opus",
+    "audio/ogg",
+    "audio/mp4",
+  ];
+  for (const type of candidates) {
+    if (MediaRecorder.isTypeSupported(type)) return type;
+  }
+  return ""; // Let the browser choose.
+}
+
+// Upload the recorded audio blob directly from this page context.
+// Passing a Blob through runtime.sendMessage serialises it to {}, so we must
+// upload here where the Blob is still a real binary object.
 async function uploadRecording(blob) {
   if (!blob || blob.size === 0) {
     throw new Error("Recording is empty. Please try recording again.");
   }
 
-  const token = await getAccessToken();
+  const { [TOKEN_KEY]: token } = await storageGet([TOKEN_KEY]);
   if (!token) {
     throw new Error("Missing access token. Open the AfterThought popup and save your token.");
   }
 
+  const uploadUrl = apiBase + "/api/transcribe";
+
   let res;
   try {
-    res = await fetch(UPLOAD_URL, {
+    res = await fetch(uploadUrl, {
       method: "POST",
       mode: "cors",
       headers: {
-        "Content-Type": "audio/webm",
+        "Content-Type": blob.type || "audio/webm",
         Authorization: "Bearer " + token,
       },
       body: blob,
@@ -108,7 +121,7 @@ async function uploadRecording(blob) {
   let data;
   try {
     data = await res.json();
-  } catch (err) {
+  } catch {
     throw new Error("The server returned an unexpected response.");
   }
 
@@ -119,11 +132,16 @@ async function uploadRecording(blob) {
   return data;
 }
 
+// Initialise: load the saved base URL from storage before the user can act.
+storageGet([BASE_URL_KEY]).then(({ [BASE_URL_KEY]: savedBase }) => {
+  if (savedBase) apiBase = savedBase;
+});
+
 confirmBtn.addEventListener("click", async () => {
   clearBanners();
 
-  // Block recording until a valid token is saved.
-  const token = await getAccessToken();
+  // Re-read storage at click time so any mid-session token change is picked up.
+  const { [TOKEN_KEY]: token } = await storageGet([TOKEN_KEY]);
   if (!token) {
     showError("No access token found. Open the AfterThought popup, paste your token, and save it before recording.");
     return;
@@ -132,14 +150,14 @@ confirmBtn.addEventListener("click", async () => {
   try {
     setStatus("Requesting microphone access…");
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      audio: true,
-      video: false,
-    });
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
     activeStream = stream;
 
     chunks = [];
-    mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+    const mimeType = getSupportedMimeType();
+    mediaRecorder = mimeType
+      ? new MediaRecorder(stream, { mimeType })
+      : new MediaRecorder(stream);
 
     mediaRecorder.ondataavailable = (e) => {
       if (e.data && e.data.size > 0) chunks.push(e.data);
@@ -149,35 +167,43 @@ confirmBtn.addEventListener("click", async () => {
       stopStream();
       setStatus("Uploading recording…");
 
-      const blob = new Blob(chunks, { type: "audio/webm" });
+      const mType = mediaRecorder.mimeType || "audio/webm";
+      const blob = new Blob(chunks, { type: mType });
 
       try {
         const data = await uploadRecording(blob);
         setStatus("");
         showSuccess("Recording uploaded. Opening your summary…");
-        setTimeout(() => {
-          window.location.href = API_BASE + "/recording/" + data.id;
-        }, 1200);
+
+        // Open the recording summary in a proper browser tab, not in the
+        // extension popup frame (which would navigate away from the extension).
+        const summaryUrl = apiBase + "/recording/" + data.id;
+        if (browserApi?.tabs?.create) {
+          setTimeout(() => browserApi.tabs.create({ url: summaryUrl }), 1200);
+        } else {
+          setTimeout(() => window.open(summaryUrl, "_blank"), 1200);
+        }
       } catch (err) {
-        console.error("Upload failed:", err);
         setStatus("");
         showError(err.message || "Something went wrong during upload.");
-        // Allow the user to retry from the recording screen.
         recordingControls.style.display = "none";
         preRecording.style.display = "block";
       }
     };
 
-    // Collect data periodically so a chunk is always available.
+    // Collect data every second so a chunk is always available on stop.
     mediaRecorder.start(1000);
 
     preRecording.style.display = "none";
     recordingControls.style.display = "block";
     setStatus("");
   } catch (err) {
-    console.error(err);
     stopStream();
-    showError("Microphone permission denied or unavailable. Allow mic access and try again.");
+    if (err.name === "NotAllowedError" || err.name === "PermissionDeniedError") {
+      showError("Microphone permission denied. Allow mic access in your browser settings and try again.");
+    } else {
+      showError("Could not start recording: " + (err.message || "unknown error."));
+    }
     setStatus("");
   }
 });
@@ -191,5 +217,6 @@ stopBtn.addEventListener("click", () => {
 
 cancelBtn.addEventListener("click", () => {
   stopStream();
+  if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
   window.close();
 });

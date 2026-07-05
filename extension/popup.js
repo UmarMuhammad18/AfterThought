@@ -1,13 +1,14 @@
 // popup.js
 
-// Base URL of the AfterThought web app. Keep in sync with manifest host_permissions.
-const API_BASE = "http://localhost:3000";
 const SETTINGS_PATH = "/settings/extension-access";
 const TOKEN_KEY = "afterthought_access_token";
+const BASE_URL_KEY = "afterthought_base_url";
+const DEFAULT_BASE_URL = "http://localhost:3000";
 
 const startBtn = document.getElementById("startBtn");
 const statusEl = document.getElementById("status");
 const tokenInput = document.getElementById("tokenInput");
+const baseUrlInput = document.getElementById("baseUrlInput");
 const saveTokenBtn = document.getElementById("saveTokenBtn");
 const openSettingsBtn = document.getElementById("openSettingsBtn");
 
@@ -24,26 +25,42 @@ function setStatus(text, type) {
   statusEl.className = "status" + (type ? " " + type : "");
 }
 
-// Point the settings link at the dashboard token page.
+function getApiBase() {
+  return (baseUrlInput?.value || "").trim() || DEFAULT_BASE_URL;
+}
+
+// Point the settings link at the dashboard token page and open it in a real tab.
+function updateSettingsLink() {
+  if (!openSettingsBtn) return;
+  const url = getApiBase() + SETTINGS_PATH;
+  openSettingsBtn.href = url;
+}
+
 if (openSettingsBtn) {
-  openSettingsBtn.href = API_BASE + SETTINGS_PATH;
-  // Open in a real browser tab even if popup blocks target=_blank.
+  updateSettingsLink();
   openSettingsBtn.addEventListener("click", (e) => {
     if (browserApi?.tabs?.create) {
       e.preventDefault();
-      browserApi.tabs.create({ url: API_BASE + SETTINGS_PATH });
+      browserApi.tabs.create({ url: getApiBase() + SETTINGS_PATH });
     }
   });
 }
 
-// Load any previously saved token into the input.
-function loadToken() {
+// Load previously saved token and base URL from extension storage.
+function loadSettings() {
   if (!browserApi?.storage?.local) {
     setStatus("Extension storage is unavailable.", "error");
     return;
   }
-  browserApi.storage.local.get([TOKEN_KEY], (result) => {
+  browserApi.storage.local.get([TOKEN_KEY, BASE_URL_KEY], (result) => {
     const token = result?.[TOKEN_KEY];
+    const baseUrl = result?.[BASE_URL_KEY];
+
+    if (baseUrl && baseUrlInput) {
+      baseUrlInput.value = baseUrl;
+      updateSettingsLink();
+    }
+
     if (token) {
       tokenInput.value = token;
       setStatus("Access token loaded. You're ready to record.", "success");
@@ -53,8 +70,9 @@ function loadToken() {
   });
 }
 
-loadToken();
+loadSettings();
 
+// Save token (and base URL if provided) when the user clicks Save.
 saveTokenBtn.addEventListener("click", () => {
   const token = (tokenInput.value || "").trim();
   if (!token) {
@@ -65,8 +83,14 @@ saveTokenBtn.addEventListener("click", () => {
     setStatus("Extension storage is unavailable.", "error");
     return;
   }
-  browserApi.storage.local.set({ [TOKEN_KEY]: token }, () => {
-    setStatus("Access token saved. You're ready to record.", "success");
+
+  const toSave = { [TOKEN_KEY]: token };
+  const baseUrl = (baseUrlInput?.value || "").trim();
+  if (baseUrl) toSave[BASE_URL_KEY] = baseUrl;
+
+  browserApi.storage.local.set(toSave, () => {
+    updateSettingsLink();
+    setStatus("Settings saved. You're ready to record.", "success");
   });
 });
 
@@ -82,12 +106,15 @@ startBtn.addEventListener("click", () => {
     return;
   }
 
-  // Persist the latest token value before opening the recording tab.
-  browserApi.storage.local.set({ [TOKEN_KEY]: token }, () => {
+  // Persist the current values then open the recording tab.
+  const toSave = { [TOKEN_KEY]: token };
+  const baseUrl = (baseUrlInput?.value || "").trim();
+  if (baseUrl) toSave[BASE_URL_KEY] = baseUrl;
+
+  browserApi.storage.local.set(toSave, () => {
     setStatus("Opening recording tab…");
     browserApi.runtime.sendMessage({ action: "open-recording-tab" }, () => {
       if (browserApi.runtime.lastError) {
-        console.error(browserApi.runtime.lastError);
         setStatus("Failed to open recording tab.", "error");
         return;
       }

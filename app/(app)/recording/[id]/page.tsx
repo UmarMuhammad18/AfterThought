@@ -69,7 +69,7 @@ export default function RecordingPage({
 
       {/* Summary */}
       <section className="glass rounded-2xl p-6">
-        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">📝 Summary</h2>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Summary</h2>
         <p className="text-muted-foreground whitespace-pre-line leading-relaxed">
           {data.summary || "No summary available."}
         </p>
@@ -77,7 +77,7 @@ export default function RecordingPage({
 
       {/* Action Items */}
       <section className="glass rounded-2xl p-6">
-        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">📌 Action Items</h2>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Action Items</h2>
         {data.action_items?.length ? (
           <ul className="flex flex-col gap-2.5">
             {data.action_items.map((item: string, i: number) => (
@@ -94,7 +94,7 @@ export default function RecordingPage({
 
       {/* Transcript */}
       <section className="glass rounded-2xl p-6">
-        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">💬 Transcript</h2>
+        <h2 className="font-heading text-lg font-semibold text-foreground mb-3">Transcript</h2>
         {data.segments?.length ? (
           <div className="space-y-3">
             {data.segments.map((seg: any, i: number) => (

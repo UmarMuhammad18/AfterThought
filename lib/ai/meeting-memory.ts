@@ -1,0 +1,187 @@
+/**
+ * Meeting memory AI — improved from Rayene-B/AfterThought's meeting-ai.ts
+ * and merged with the structured analysis already in this repo.
+ *
+ * - Single-meeting Q&A grounded in the transcript
+ * - Multi-meeting search with ranked evidence snippets
+ * - Lightweight related-results for UI / WhatsApp citations
+ */
+
+import {
+  answerQuestion as baseAnswerQuestion,
+  analyzeTranscript,
+  isAiConfigured,
+  GeminiServiceError,
+} from "@/app/api/summarize/ai/gemini-service"
+import type { MeetingAnalysis } from "@/app/api/summarize/ai/schemas"
+
+export type MeetingSegment = {
+  speaker: string
+  text: string
+  timestamp?: string
+}
+
+export type MemoryMeeting = {
+  id: string
+  title: string
+  summary?: string
+  action_items?: string[] | { task?: string; text?: string; owner?: string }[]
+  segments: MeetingSegment[]
+  created_at?: string
+}
+
+export type EvidenceSnippet = {
+  text: string
+  speaker?: string
+  timestamp?: string
+  meetingId: string
+  meetingTitle: string
+  score: number
+}
+
+function tokenize(value: string): string[] {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .split(/\s+/)
+    .filter((w) => w.length > 2)
+}
+
+export function transcriptFromMeeting(meeting: MemoryMeeting): string {
+  return meeting.segments
+    .map((s) => `${s.speaker}: ${s.text}`)
+    .join("\n")
+}
+
+/**
+ * Rank transcript segments across one or many meetings by keyword overlap.
+ * Used for evidence cards and WhatsApp citations.
+ */
+export function relatedResults(
+  question: string,
+  meetings: MemoryMeeting[],
+  limit = 8,
+): EvidenceSnippet[] {
+  const terms = tokenize(question)
+  if (terms.length === 0) return []
+
+  return meetings
+    .flatMap((meeting) =>
+      meeting.segments.map((segment, index) => {
+        const source = `${segment.speaker}: ${segment.text}`.toLowerCase()
+        const score = terms.reduce(
+          (total, term) => total + (source.includes(term) ? 1 : 0),
+          0,
+        )
+        return {
+          score,
+          meetingId: meeting.id,
+          meetingTitle: meeting.title,
+          speaker: segment.speaker,
+          text: segment.text,
+          timestamp:
+            segment.timestamp ??
+            `${String(Math.floor(index / 2)).padStart(2, "0")}:${String((index % 2) * 30).padStart(2, "0")}`,
+        }
+      }),
+    )
+    .filter((r) => r.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, limit)
+}
+
+/**
+ * Ask a question about a single meeting. Grounded in the transcript only.
+ */
+export async function askMeetingAI(
+  question: string,
+  meeting: MemoryMeeting,
+): Promise<string> {
+  if (!isAiConfigured()) {
+    return "AI is not configured. Add OPENROUTER_API_KEY (or GEMINI_API_KEY) to enable answers."
+  }
+
+  const transcript = transcriptFromMeeting(meeting)
+  if (!transcript.trim()) {
+    return "This meeting has no transcript yet."
+  }
+
+  try {
+    return await baseAnswerQuestion(transcript, question)
+  } catch (err) {
+    if (err instanceof GeminiServiceError) {
+      return `AI request failed: ${err.message}`
+    }
+    return `AI request failed: ${String(err)}`
+  }
+}
+
+/**
+ * Ask across multiple meetings. Builds a compact context from the top
+ * related segments + meeting titles, then asks the model.
+ */
+export async function askAcrossMeetings(
+  question: string,
+  meetings: MemoryMeeting[],
+): Promise<{ answer: string; evidence: EvidenceSnippet[] }> {
+  const evidence = relatedResults(question, meetings, 10)
+
+  if (!isAiConfigured()) {
+    return {
+      answer:
+        "AI is not configured. Add OPENROUTER_API_KEY to enable cross-meeting answers.",
+      evidence,
+    }
+  }
+
+  if (meetings.length === 0) {
+    return {
+      answer: "No meetings found to search.",
+      evidence: [],
+    }
+  }
+
+  // Build a focused context from the highest-scoring snippets
+  const contextBlocks =
+    evidence.length > 0
+      ? evidence.map(
+          (e) =>
+            `[${e.meetingTitle} | ${e.timestamp ?? "?"} | ${e.speaker ?? "?"}]\n${e.text}`,
+        )
+      : meetings.slice(0, 5).map((m) => {
+          const t = transcriptFromMeeting(m).slice(0, 1200)
+          return `[${m.title}]\n${t}`
+        })
+
+  const context = contextBlocks.join("\n\n---\n\n")
+
+  try {
+    const answer = await baseAnswerQuestion(
+      context,
+      `${question}\n\n(Answer using only the meeting excerpts above. Cite meeting titles when useful.)`,
+    )
+    return { answer, evidence }
+  } catch (err) {
+    const message =
+      err instanceof GeminiServiceError ? err.message : String(err)
+    return {
+      answer: `AI request failed: ${message}`,
+      evidence,
+    }
+  }
+}
+
+/**
+ * Full structured analysis of a transcript (re-export for convenience).
+ */
+export async function analyzeMeetingTranscript(
+  transcript: string,
+): Promise<MeetingAnalysis | null> {
+  if (!isAiConfigured() || !transcript.trim()) return null
+  try {
+    return await analyzeTranscript(transcript)
+  } catch (err) {
+    console.error("[meeting-memory] analyze failed:", err)
+    return null
+  }
+}

@@ -5,11 +5,12 @@ import {
   formatErrorReply,
   formatHelpReply,
 } from "./reply-formatter"
+import { transcribeAudio } from "./transcription"
+import { processMeetingFromTranscript } from "./meeting-processor"
 
 /**
  * Central handler for every inbound WhatsApp message.
- * Right now it only does text + voice-note paths.
- * Call-recording path will be added once Cloud API is connected.
+ * Text notes, voice notes, and (later) call recordings all go through here.
  */
 export async function handleIncomingWhatsAppMessage(
   msg: IncomingMessage,
@@ -28,21 +29,19 @@ export async function handleIncomingWhatsAppMessage(
       return
     }
 
-    // Text notes → treat as a simple meeting note for now
+    // Text notes → process as a meeting note
     if (msg.type === "text" && msg.text?.trim()) {
-      // TODO: call your existing meeting-processor / AI pipeline here
-      // For now we just echo a structured reply so the flow is testable.
-      const fakeMeeting = {
-        id: msg.id,
-        title: "Quick note from WhatsApp",
-        summary: msg.text.trim(),
-        action_items: [] as string[],
-      }
+      const meeting = await processMeetingFromTranscript({
+        phone: msg.from,
+        transcriptText: msg.text.trim(),
+        title: "WhatsApp note",
+        source: "whatsapp_text",
+      })
 
       await adapter.sendMessage({
         to,
         type: "text",
-        text: formatMeetingReply(fakeMeeting),
+        text: formatMeetingReply(meeting),
       })
       return
     }
@@ -54,49 +53,97 @@ export async function handleIncomingWhatsAppMessage(
         await adapter.sendMessage({
           to,
           type: "text",
-          text: formatErrorReply("I received a voice note but no media reference."),
-        })
-        return
-      }
-
-      // Download (mock will return sample or empty buffer)
-      const audioBuffer = await adapter.downloadMedia(mediaRef)
-
-      if (audioBuffer.length === 0) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
           text: formatErrorReply(
-            "Could not download the voice note (or no sample file in /samples).",
+            "I received a voice note but no media reference.",
           ),
         })
         return
       }
 
-      // TODO: pipe audioBuffer into real STT + your existing /api/transcribe logic
-      // For now return a placeholder so the end-to-end path works.
-      const placeholderMeeting = {
-        id: msg.id,
-        title: "Voice note from WhatsApp",
-        summary:
-          "(Placeholder) Transcription + AI summary will appear here once the STT pipeline is wired.",
-        action_items: ["Wire real transcription", "Store meeting under this phone number"],
+      await adapter.sendMessage({
+        to,
+        type: "text",
+        text: "🎙️ Got your voice note — transcribing and summarizing…",
+      })
+
+      const audioBuffer = await adapter.downloadMedia(mediaRef)
+      if (audioBuffer.length === 0) {
+        await adapter.sendMessage({
+          to,
+          type: "text",
+          text: formatErrorReply(
+            "Could not download the voice note. For local testing, put a sample-voice-note.ogg in /samples.",
+          ),
+        })
+        return
+      }
+
+      const transcription = await transcribeAudio(
+        audioBuffer,
+        msg.mediaMimeType || "audio/ogg",
+      )
+
+      if (!transcription.text.trim()) {
+        await adapter.sendMessage({
+          to,
+          type: "text",
+          text: formatErrorReply("Transcription came back empty."),
+        })
+        return
+      }
+
+      const meeting = await processMeetingFromTranscript({
+        phone: msg.from,
+        transcriptText: transcription.text,
+        segments: transcription.segments,
+        title: "WhatsApp voice note",
+        source: "whatsapp_voice",
+      })
+
+      await adapter.sendMessage({
+        to,
+        type: "text",
+        text: formatMeetingReply(meeting),
+      })
+      return
+    }
+
+    // Future: call_recording type (Cloud API will deliver the recording media)
+    if (msg.type === "call_recording") {
+      const mediaRef = msg.mediaId || msg.mediaUrl
+      if (!mediaRef) {
+        await adapter.sendMessage({
+          to,
+          type: "text",
+          text: formatErrorReply("Call recording received but no media ID."),
+        })
+        return
       }
 
       await adapter.sendMessage({
         to,
         type: "text",
-        text: formatMeetingReply(placeholderMeeting),
+        text: "📞 Call recording received — processing notes…",
       })
-      return
-    }
 
-    // Future: call_recording type
-    if (msg.type === "call_recording") {
+      const audioBuffer = await adapter.downloadMedia(mediaRef)
+      const transcription = await transcribeAudio(
+        audioBuffer,
+        msg.mediaMimeType || "audio/ogg",
+      )
+
+      const meeting = await processMeetingFromTranscript({
+        phone: msg.from,
+        transcriptText: transcription.text,
+        segments: transcription.segments,
+        title: "WhatsApp call",
+        source: "whatsapp_call",
+      })
+
       await adapter.sendMessage({
         to,
         type: "text",
-        text: "Call recording received. Processing will be enabled once Cloud API is connected.",
+        text: formatMeetingReply(meeting),
       })
       return
     }
@@ -113,7 +160,9 @@ export async function handleIncomingWhatsAppMessage(
       await adapter.sendMessage({
         to,
         type: "text",
-        text: formatErrorReply("Something went wrong while processing your message."),
+        text: formatErrorReply(
+          "Something went wrong while processing your message.",
+        ),
       })
     } catch {
       // swallow

@@ -1,21 +1,52 @@
 {
   "name": "AfterThought",
   "short_name": "AfterThought",
-  "description": "AI Meeting Memory Engine",
-  "start_url": "/",
+  "description": "Record, transcribe and remember any call, on any device.",
+  "start_url": "/record",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0c0d12",
   "theme_color": "#0c0d12",
   "icons": [
     {
-      "src": "/icon-light-32x32.png",
-      "sizes": "32x32",
-      "type": "image/png"
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     },
     {
       "src": "/apple-icon.png",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/icon-light-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "Record now",
+      "url": "/record",
+      "description": "Start recording a conversation"
+    },
+    {
+      "name": "Search meetings",
+      "url": "/search"
+    }
+  ],
+  "share_target": {
+    "action": "/share-target",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "audio",
+          "accept": ["audio/*", "video/*", ".m4a", ".amr", ".3gp", ".opus", ".mp3", ".wav"]
+        }
+      ]
+    }
+  }
 }

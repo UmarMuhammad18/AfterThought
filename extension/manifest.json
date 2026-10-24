@@ -1,20 +1,29 @@
 {
   "manifest_version": 3,
   "name": "AfterThought",
-  "version": "1.0.0",
-  "description": "AI meeting assistant that records and uploads audio for processing.",
+  "version": "2.0.0",
+  "description": "Record any call in your browser — both sides — and get a transcript, summary and action items.",
   "action": {
     "default_popup": "popup.html",
-    "default_title": "AfterThought"
+    "default_title": "AfterThought — record this call"
   },
   "background": {
     "service_worker": "background.js",
     "type": "module"
   },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Open AfterThought to record this tab"
+    }
+  },
   "permissions": [
     "tabs",
     "activeTab",
-    "storage"
+    "storage",
+    "tabCapture"
   ],
   "host_permissions": [
     "http://localhost:3000/*",

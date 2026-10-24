@@ -12,12 +12,6 @@ type SpeakerRow = {
   action_items?: string[]
 }
 
-// Fallback data used when no speakers have been captured yet.
-const placeholderSpeakers = [
-  { id: '1', name: 'Maya Chen', mentions: 48, actionItemsCount: 5 },
-  { id: '2', name: 'Devon Park', mentions: 39, actionItemsCount: 3 },
-]
-
 type DisplaySpeaker = {
   id: string
   name: string
@@ -41,7 +35,7 @@ export default function SpeakersPage() {
       try {
         const res = await authFetch('/api/speakers')
         const data = await res.json()
-        if (data.ok && Array.isArray(data.speakers) && data.speakers.length > 0) {
+        if (data.ok && Array.isArray(data.speakers)) {
           setSpeakers(
             data.speakers.map((s: SpeakerRow) => ({
               id: s.id,
@@ -50,12 +44,9 @@ export default function SpeakersPage() {
               actionItemsCount: s.action_items?.length ?? 0,
             })),
           )
-        } else {
-          setSpeakers(placeholderSpeakers)
         }
       } catch (err) {
         console.error('Failed to load speakers', err)
-        setSpeakers(placeholderSpeakers)
       } finally {
         setLoading(false)
       }
@@ -88,7 +79,7 @@ export default function SpeakersPage() {
                   <span className="grid size-10 place-items-center rounded-full bg-secondary font-semibold text-secondary-foreground border border-glass-border">
                     {speaker.name.substring(0, 2).toUpperCase()}
                   </span>
-                  <span className="text-xs text-muted-foreground">{speaker.mentions} mentions</span>
+                  <span className="text-xs text-muted-foreground">{speaker.mentions} turns</span>
                 </div>
                 <h3 className="font-heading text-lg font-semibold text-foreground group-hover:text-primary transition-colors">{speaker.name}</h3>
                 <p className="text-sm text-muted-foreground mt-1">{speaker.actionItemsCount} action items</p>
@@ -97,7 +88,7 @@ export default function SpeakersPage() {
           ) : (
             <div className="col-span-full glass p-8 text-center text-muted-foreground flex flex-col items-center gap-3">
               <AlertTriangle className="size-8 opacity-50" />
-              <p>No speakers found.</p>
+              <p>No named speakers yet. Open a conversation and use “Name the speakers” on its transcript.</p>
             </div>
           )}
         </div>

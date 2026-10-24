@@ -6,46 +6,15 @@ import { Sparkles, FileText, ArrowUpRight, Quote } from 'lucide-react'
 import { SearchBar } from '@/components/search-bar'
 import { GlassPanel } from '@/components/glass-panel'
 import { examplePrompts } from '@/lib/data'
+import { authFetch } from '@/lib/api-client'
 
 type SearchResult = {
-  type: string
   text: string
   speaker?: string
-  category?: string
+  timestamp?: string
+  start?: number
   meetingId?: string
-}
-
-const sampleAnswer = {
-  text: 'The team decided on a usage-based pricing tier layered on top of a flat team plan. This tested best with the Northwind account during customer discovery, and pricing will be revisited before the public launch readiness review on Jul 15.',
-  highlights: ['usage-based pricing tier', 'flat team plan', 'Jul 15'],
-  citations: [
-    {
-      meeting: 'Go-To-Market Planning',
-      id: 'gtm-planning',
-      timestamp: '04:51',
-      quote: 'A usage-based tier on top of a flat team plan tested best with Northwind.',
-    },
-    {
-      meeting: 'Customer Discovery — Northwind',
-      id: 'customer-discovery',
-      timestamp: '11:20',
-      quote: 'People want answers fast — willingness to pay tracks with relevance.',
-    },
-  ],
-}
-
-function highlight(text: string, terms: string[]) {
-  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
-  const regex = new RegExp(`(${escaped.join('|')})`, 'gi')
-  return text.split(regex).map((part, i) =>
-    terms.some((t) => t.toLowerCase() === part.toLowerCase()) ? (
-      <mark key={i} className="rounded bg-primary/15 px-1 font-medium text-primary">
-        {part}
-      </mark>
-    ) : (
-      <span key={i}>{part}</span>
-    ),
-  )
+  meetingTitle?: string
 }
 
 export default function SearchPage() {
@@ -53,6 +22,7 @@ export default function SearchPage() {
   const [submitted, setSubmitted] = useState(false)
   const [isSearching, setIsSearching] = useState(false)
   const [searchResults, setSearchResults] = useState<SearchResult[]>([])
+  const [answer, setAnswer] = useState('')
 
   async function runSearch(value: string) {
     if (!value.trim()) return
@@ -62,14 +32,13 @@ export default function SearchPage() {
     setIsSearching(true)
 
     try {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(value)}`)
+      const response = await authFetch(`/api/search?q=${encodeURIComponent(value)}`)
       const data = await response.json()
-      const results = Array.isArray(data.results)
-        ? (data.results as SearchResult[])
-        : []
-      setSearchResults(results)
+      setAnswer(data.answer || data.error || '')
+      setSearchResults(Array.isArray(data.results) ? (data.results as SearchResult[]) : [])
     } catch (error) {
       console.error('Search request failed', error)
+      setAnswer('Search failed. Please try again.')
       setSearchResults([])
     } finally {
       setIsSearching(false)
@@ -124,75 +93,39 @@ export default function SearchPage() {
               <Sparkles className="size-4" />
               AI Answer
             </div>
-            <p className="text-pretty leading-relaxed text-foreground">
-              {isSearching
-                ? 'Searching your meeting memory…'
-                : highlight(sampleAnswer.text, sampleAnswer.highlights)}
+            <p className="whitespace-pre-line text-pretty leading-relaxed text-foreground">
+              {isSearching ? 'Searching your meeting memory…' : answer || 'No answer found.'}
             </p>
           </GlassPanel>
 
-          {searchResults.length > 0 && (
+          {!isSearching && searchResults.length > 0 && (
             <div className="flex flex-col gap-3">
-              <span className="text-sm text-muted-foreground">Related results</span>
-              <div className="flex flex-col gap-2">
-                {searchResults.map((result, index) => (
-                  <Link
-                    key={`${result.text}-${index}`}
-                    href={result.meetingId ? `/meeting/${result.meetingId}` : '/dashboard'}
-                    className="glass rounded-2xl p-4 transition-all hover:border-primary/30"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <span className="text-xs uppercase tracking-wide text-primary">
-                        {result.type}
-                      </span>
-                      {result.speaker && (
-                        <span className="text-xs text-muted-foreground">
-                          {result.speaker}
-                        </span>
-                      )}
-                    </div>
-                    <p className="mt-2 text-sm leading-relaxed text-foreground">
-                      {result.text}
-                    </p>
-                    {result.category && (
-                      <span className="mt-2 inline-block text-xs text-muted-foreground">
-                        {result.category}
-                      </span>
-                    )}
-                  </Link>
-                ))}
-              </div>
+              <span className="text-sm text-muted-foreground">Sources — click to hear the moment</span>
+              {searchResults.map((c, index) => (
+                <Link
+                  key={`${c.meetingId}-${index}`}
+                  href={c.meetingId ? `/meeting/${c.meetingId}${c.start != null ? `?t=${Math.floor(c.start)}` : ''}` : '/dashboard'}
+                  className="glass group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:border-primary/30"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
+                      <FileText className="size-4 shrink-0 text-primary" />
+                      <span className="truncate">{c.meetingTitle ?? 'Meeting'}</span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                      {c.speaker && <span>{c.speaker}</span>}
+                      {c.timestamp && <span className="font-mono">{c.timestamp}</span>}
+                      <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                    </span>
+                  </div>
+                  <p className="flex gap-2 whitespace-pre-line text-sm leading-relaxed text-muted-foreground">
+                    <Quote className="mt-0.5 size-3.5 shrink-0 text-primary/60" />
+                    {c.text}
+                  </p>
+                </Link>
+              ))}
             </div>
           )}
-
-          {/* Citations */}
-          <div className="flex flex-col gap-3">
-            <span className="text-sm text-muted-foreground">
-              Citations &amp; sources
-            </span>
-            {sampleAnswer.citations.map((c) => (
-              <Link
-                key={c.id}
-                href={`/meeting/${c.id}`}
-                className="glass group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:border-primary/30"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <FileText className="size-4 text-primary" />
-                    {c.meeting}
-                  </span>
-                  <span className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span className="font-mono">{c.timestamp}</span>
-                    <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                  </span>
-                </div>
-                <p className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
-                  <Quote className="mt-0.5 size-3.5 shrink-0 text-primary/60" />
-                  {c.quote}
-                </p>
-              </Link>
-            ))}
-          </div>
         </div>
       )}
     </div>

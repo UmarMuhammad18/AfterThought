@@ -1,30 +1,43 @@
 'use client'
 
 import { useRef, useState } from 'react'
-import {
-  Sparkles,
-  X,
-  Send,
-  Radio,
-  ListTodo,
-  GripVertical,
-} from 'lucide-react'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Sparkles, X, Send, Mic, GripVertical, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { authFetch } from '@/lib/api-client'
 
-const liveTranscript = [
-  { speaker: 'Maya', text: 'Let us lock the beta scope before Friday.' },
-  { speaker: 'Devon', text: 'I will own real-time indexing this sprint.' },
-  { speaker: 'Lina', text: 'Mind-map specs are ready for review.' },
-]
-
-const liveActions = [
-  'Finalize roadmap one-pager — Maya',
-  'Spike on transcript indexing — Devon',
-  'Deliver mind-map specs — Lina',
-]
+type Source = { meetingId: string; meetingTitle: string; timestamp?: string; start?: number }
 
 export function FloatingAssistant() {
   const [open, setOpen] = useState(false)
+  const [question, setQuestion] = useState('')
+  const [answer, setAnswer] = useState<string | null>(null)
+  const [sources, setSources] = useState<Source[]>([])
+  const [busy, setBusy] = useState(false)
+  const pathname = usePathname()
+  // On a meeting page, questions go to that meeting; elsewhere, across all.
+  const meetingId = pathname.match(/^\/meeting\/([^/]+)/)?.[1]
+
+  async function ask(e: React.FormEvent) {
+    e.preventDefault()
+    if (!question.trim()) return
+    setBusy(true)
+    try {
+      const res = await authFetch('/api/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question, meetingId }),
+      })
+      const data = await res.json()
+      setAnswer(data.answer || data.error || 'No answer found.')
+      setSources(Array.isArray(data.results) ? data.results.slice(0, 3) : [])
+    } catch {
+      setAnswer('Something went wrong. Please try again.')
+    } finally {
+      setBusy(false)
+    }
+  }
   const [pos, setPos] = useState({ x: 0, y: 0 })
   const dragRef = useRef<{ startX: number; startY: number; ox: number; oy: number } | null>(
     null,
@@ -75,57 +88,54 @@ export function FloatingAssistant() {
           </button>
         </div>
 
-        <div className="flex max-h-[22rem] flex-col gap-4 overflow-y-auto scroll-slim p-4">
-          <div>
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <Radio className="size-3.5 text-primary" />
-              Live transcript
-              <span className="ml-1 size-1.5 animate-pulse rounded-full bg-pink" />
-            </div>
-            <div className="flex flex-col gap-2">
-              {liveTranscript.map((l, i) => (
-                <p key={i} className="text-sm leading-relaxed text-muted-foreground">
-                  <span className="font-medium text-foreground">{l.speaker}:</span>{' '}
-                  {l.text}
-                </p>
-              ))}
-            </div>
-          </div>
-
-          <div className="border-t border-glass-border pt-3">
-            <div className="mb-2 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-              <ListTodo className="size-3.5 text-primary" />
-              Live action items
-            </div>
-            <ul className="flex flex-col gap-2">
-              {liveActions.map((a) => (
-                <li
-                  key={a}
-                  className="flex items-start gap-2 text-sm leading-relaxed text-muted-foreground"
+        <div className="flex max-h-[22rem] flex-col gap-3 overflow-y-auto scroll-slim p-4">
+          {answer ? (
+            <>
+              <p className="whitespace-pre-line text-sm leading-relaxed text-foreground">{answer}</p>
+              {sources.map((src, i) => (
+                <Link
+                  key={i}
+                  href={`/meeting/${src.meetingId}${src.start != null ? `?t=${Math.floor(src.start)}` : ''}`}
+                  className="text-xs text-primary hover:underline"
                 >
-                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-primary" />
-                  {a}
-                </li>
+                  {src.meetingTitle}
+                  {src.timestamp ? ` · ${src.timestamp}` : ''}
+                </Link>
               ))}
-            </ul>
-          </div>
+            </>
+          ) : (
+            <p className="text-sm leading-relaxed text-muted-foreground">
+              {meetingId
+                ? 'Ask anything about this conversation.'
+                : 'Ask anything across all your conversations — decisions, promises, what a candidate said.'}
+            </p>
+          )}
+          <Link
+            href="/record"
+            className="flex w-fit items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3 py-2 text-sm text-foreground hover:text-primary"
+          >
+            <Mic className="size-4" /> Record now
+          </Link>
         </div>
 
         <form
-          onSubmit={(e) => e.preventDefault()}
+          onSubmit={ask}
           className="flex items-center gap-2 border-t border-glass-border p-3"
         >
           <input
-            placeholder="Ask about this meeting…"
+            value={question}
+            onChange={(e) => setQuestion(e.target.value)}
+            placeholder={meetingId ? 'Ask about this conversation…' : 'Ask about any conversation…'}
             aria-label="Ask the assistant"
             className="h-10 w-full rounded-xl border border-glass-border bg-glass px-3 text-sm text-foreground placeholder:text-muted-foreground focus:border-primary/40 focus:outline-none"
           />
           <button
             type="submit"
             aria-label="Send"
-            className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition-opacity hover:opacity-90"
+            disabled={busy}
+            className="grid size-10 shrink-0 place-items-center rounded-xl bg-primary text-primary-foreground transition-opacity hover:opacity-90 disabled:opacity-60"
           >
-            <Send className="size-4" />
+            {busy ? <Loader2 className="size-4 animate-spin" /> : <Send className="size-4" />}
           </button>
         </form>
       </div>
@@ -144,10 +154,6 @@ export function FloatingAssistant() {
       >
         <GripVertical className="absolute left-0.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground/40 opacity-0 transition-opacity group-hover:opacity-100" />
         <Sparkles className="size-6 text-primary" />
-        {/* pink notification micro-dot ONLY */}
-        {!open && (
-          <span className="absolute right-3 top-3 size-2 rounded-full bg-pink ring-2 ring-background" />
-        )}
       </button>
     </div>
   )

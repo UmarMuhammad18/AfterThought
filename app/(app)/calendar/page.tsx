@@ -1,7 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Calendar, Clock, AlertTriangle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Calendar, Clock, AlertTriangle, Loader2, Download } from 'lucide-react'
 import { authFetch } from '@/lib/api-client'
 
 type EventRow = {
@@ -20,12 +21,6 @@ type DisplayEvent = {
   assignee: string
   meetingId: string
 }
-
-// Fallback data used when no calendar events have been created yet.
-const placeholderEvents: DisplayEvent[] = [
-  { id: '1', title: 'Follow up with the client', date: 'Jul 24, 2026', time: '10:00 AM', assignee: 'Maya Chen', meetingId: 'meeting-123' },
-  { id: '2', title: 'Prepare the proposal', date: 'Jul 25, 2026', time: '2:00 PM', assignee: 'Devon Park', meetingId: 'meeting-124' },
-]
 
 function formatEvent(e: EventRow): DisplayEvent {
   const due = e.due_date ? new Date(e.due_date) : null
@@ -49,20 +44,27 @@ export default function CalendarPage() {
       try {
         const res = await authFetch('/api/calendar')
         const data = await res.json()
-        if (data.ok && Array.isArray(data.events) && data.events.length > 0) {
+        if (data.ok && Array.isArray(data.events)) {
           setEvents(data.events.map(formatEvent))
-        } else {
-          setEvents(placeholderEvents)
         }
       } catch (err) {
         console.error('Failed to load calendar events', err)
-        setEvents(placeholderEvents)
       } finally {
         setLoading(false)
       }
     }
     load()
   }, [])
+
+  async function downloadIcs() {
+    const res = await authFetch('/api/calendar/ics')
+    const url = URL.createObjectURL(await res.blob())
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'afterthought-action-items.ics'
+    link.click()
+    URL.revokeObjectURL(url)
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -72,8 +74,17 @@ export default function CalendarPage() {
           Calendar Events
         </h1>
         <p className="text-muted-foreground">
-          Action items mapped to your schedule.
+          Action items with deadlines, pulled from your conversations.
         </p>
+        {events.some((e) => e.date !== 'No date') && (
+          <button
+            type="button"
+            onClick={downloadIcs}
+            className="flex w-fit items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3 py-2 text-sm text-foreground hover:text-primary"
+          >
+            <Download className="size-4" /> Add all to my calendar (.ics)
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -85,20 +96,25 @@ export default function CalendarPage() {
           {events.length > 0 ? (
             events.map((event) => (
               <div key={event.id} className="glass flex items-center justify-between gap-4 rounded-2xl p-5">
-                <div className="flex flex-col gap-1">
+                <div className="flex min-w-0 flex-col gap-1">
                   <h3 className="font-heading text-lg font-semibold text-foreground">{event.title}</h3>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
                     <span className="flex items-center gap-1.5"><Calendar className="size-4" /> {event.date}</span>
                     {event.time && <span className="flex items-center gap-1.5"><Clock className="size-4" /> {event.time}</span>}
                     <span className="px-2 py-0.5 rounded-full bg-secondary text-xs">{event.assignee}</span>
                   </div>
+                  {event.meetingId && (
+                    <Link href={`/meeting/${event.meetingId}`} className="text-xs text-primary hover:underline">
+                      View conversation
+                    </Link>
+                  )}
                 </div>
               </div>
             ))
           ) : (
             <div className="glass p-8 text-center text-muted-foreground flex flex-col items-center gap-3">
               <AlertTriangle className="size-8 opacity-50" />
-              <p>No upcoming events found.</p>
+              <p>No action items yet. They appear here after you record a conversation.</p>
             </div>
           )}
         </div>

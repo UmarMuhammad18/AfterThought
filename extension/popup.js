@@ -11,6 +11,11 @@ const tokenInput = document.getElementById("tokenInput");
 const baseUrlInput = document.getElementById("baseUrlInput");
 const saveTokenBtn = document.getElementById("saveTokenBtn");
 const openSettingsBtn = document.getElementById("openSettingsBtn");
+const connectSection = document.getElementById("connectSection");
+const modeSelect = document.getElementById("modeSelect");
+const titleInput = document.getElementById("titleInput");
+const interviewInput = document.getElementById("interviewInput");
+const consentInput = document.getElementById("consentInput");
 
 function getBrowser() {
   if (typeof chrome !== "undefined") return chrome;
@@ -26,99 +31,95 @@ function setStatus(text, type) {
 }
 
 function getApiBase() {
-  return (baseUrlInput?.value || "").trim() || DEFAULT_BASE_URL;
+  return (baseUrlInput?.value || "").trim().replace(/\/$/, "") || DEFAULT_BASE_URL;
 }
 
-// Point the settings link at the dashboard token page and open it in a real tab.
-function updateSettingsLink() {
-  if (!openSettingsBtn) return;
-  const url = getApiBase() + SETTINGS_PATH;
-  openSettingsBtn.href = url;
+function hasToken() {
+  return Boolean((tokenInput.value || "").trim());
+}
+
+function updateStartState() {
+  startBtn.disabled = !hasToken() || !consentInput.checked;
 }
 
 if (openSettingsBtn) {
-  updateSettingsLink();
   openSettingsBtn.addEventListener("click", (e) => {
-    if (browserApi?.tabs?.create) {
-      e.preventDefault();
-      browserApi.tabs.create({ url: getApiBase() + SETTINGS_PATH });
-    }
+    e.preventDefault();
+    browserApi.tabs.create({ url: getApiBase() + SETTINGS_PATH });
   });
 }
 
-// Load previously saved token and base URL from extension storage.
-function loadSettings() {
-  if (!browserApi?.storage?.local) {
-    setStatus("Extension storage is unavailable.", "error");
-    return;
+// Load previously saved key and base URL from extension storage.
+browserApi.storage.local.get([TOKEN_KEY, BASE_URL_KEY], (result) => {
+  if (result?.[BASE_URL_KEY]) baseUrlInput.value = result[BASE_URL_KEY];
+  if (result?.[TOKEN_KEY]) {
+    tokenInput.value = result[TOKEN_KEY];
+  } else {
+    connectSection.open = true;
+    setStatus("Add your API key to start recording.");
   }
-  browserApi.storage.local.get([TOKEN_KEY, BASE_URL_KEY], (result) => {
-    const token = result?.[TOKEN_KEY];
-    const baseUrl = result?.[BASE_URL_KEY];
+  updateStartState();
+});
 
-    if (baseUrl && baseUrlInput) {
-      baseUrlInput.value = baseUrl;
-      updateSettingsLink();
-    }
+consentInput.addEventListener("change", updateStartState);
+tokenInput.addEventListener("input", updateStartState);
 
-    if (token) {
-      tokenInput.value = token;
-      setStatus("Access token loaded. You're ready to record.", "success");
-    } else {
-      setStatus("Paste your access token to enable recording.");
-    }
-  });
-}
-
-loadSettings();
-
-// Save token (and base URL if provided) when the user clicks Save.
 saveTokenBtn.addEventListener("click", () => {
   const token = (tokenInput.value || "").trim();
   if (!token) {
-    setStatus("Please paste a valid access token.", "error");
+    setStatus("Please paste your API key.", "error");
     return;
   }
-  if (!browserApi?.storage?.local) {
-    setStatus("Extension storage is unavailable.", "error");
-    return;
-  }
-
   const toSave = { [TOKEN_KEY]: token };
-  const baseUrl = (baseUrlInput?.value || "").trim();
-  if (baseUrl) toSave[BASE_URL_KEY] = baseUrl;
-
+  const baseUrl = (baseUrlInput.value || "").trim();
+  if (baseUrl) toSave[BASE_URL_KEY] = baseUrl.replace(/\/$/, "");
   browserApi.storage.local.set(toSave, () => {
-    updateSettingsLink();
-    setStatus("Settings saved. You're ready to record.", "success");
+    connectSection.open = false;
+    setStatus("Saved. You're ready to record.", "success");
+    updateStartState();
   });
 });
 
-startBtn.addEventListener("click", () => {
-  if (!browserApi) {
-    setStatus("Browser API not available.", "error");
+startBtn.addEventListener("click", async () => {
+  // The tab the user is looking at right now is the call to capture. Clicking
+  // the toolbar button grants activeTab, which tab capture requires.
+  const [tab] = await browserApi.tabs.query({ active: true, currentWindow: true });
+  if (!tab) {
+    setStatus("Couldn't find the current tab.", "error");
     return;
   }
-
-  const token = (tokenInput.value || "").trim();
-  if (!token) {
-    setStatus("Save your access token before recording.", "error");
-    return;
-  }
-
-  // Persist the current values then open the recording tab.
-  const toSave = { [TOKEN_KEY]: token };
-  const baseUrl = (baseUrlInput?.value || "").trim();
-  if (baseUrl) toSave[BASE_URL_KEY] = baseUrl;
-
-  browserApi.storage.local.set(toSave, () => {
-    setStatus("Opening recording tab…");
-    browserApi.runtime.sendMessage({ action: "open-recording-tab" }, () => {
-      if (browserApi.runtime.lastError) {
-        setStatus("Failed to open recording tab.", "error");
+  setStatus("Starting…");
+  browserApi.runtime.sendMessage(
+    {
+      action: "start-recording",
+      tabId: tab.id,
+      mode: modeSelect.value,
+      title: (titleInput.value || "").trim(),
+      kind: interviewInput.checked ? "interview" : "meeting",
+      platform: guessPlatform(tab.url || ""),
+    },
+    (res) => {
+      if (browserApi.runtime.lastError || !res?.ok) {
+        setStatus(res?.error || "Could not start recording.", "error");
         return;
       }
-      setStatus("Recording tab opened.", "success");
-    });
-  });
+      window.close();
+    },
+  );
 });
+
+function guessPlatform(url) {
+  const map = [
+    ["meet.google.com", "Google Meet"],
+    ["zoom.us", "Zoom"],
+    ["teams.microsoft.com", "Microsoft Teams"],
+    ["teams.live.com", "Microsoft Teams"],
+    ["web.whatsapp.com", "WhatsApp"],
+    ["app.slack.com", "Slack"],
+    ["discord.com", "Discord"],
+    ["whereby.com", "Whereby"],
+    ["webex.com", "Webex"],
+  ];
+  const hit = map.find(([host]) => url.includes(host));
+  return hit ? hit[1] : undefined;
+}

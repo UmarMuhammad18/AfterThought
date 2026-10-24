@@ -11,18 +11,17 @@ async function buildAll() {
   
   fs.mkdirSync(distRendererDir, { recursive: true });
 
-  // 2. Build Chrome Extension Popup (React/TSX -> ES Module JS)
-  console.log('Building Chrome Extension popup...');
+  // 2. Build the browser extension's recorder page (shares lib/capture with the web app)
+  console.log('Building browser extension recorder...');
   await esbuild.build({
-    entryPoints: [path.join(__dirname, '../extension/popup.tsx')],
+    entryPoints: [path.join(__dirname, '../extension/src/recording.ts')],
     bundle: true,
-    outfile: path.join(__dirname, '../extension/dist/popup.js'),
+    outfile: path.join(__dirname, '../extension/dist/recording.js'),
     platform: 'browser',
-    target: 'es2020',
-    loader: { '.tsx': 'tsx', '.ts': 'ts', '.css': 'css' },
-    define: { 'process.env.NODE_ENV': '"production"' },
+    target: 'chrome110',
+    format: 'iife',
   });
-  console.log('✓ Chrome Extension popup compiled.');
+  console.log('✓ Browser extension recorder compiled.');
 
   // 3. Build Electron Main (Node TypeScript -> CommonJS JS)
   console.log('Building Electron main process...');
@@ -31,7 +30,7 @@ async function buildAll() {
     bundle: true,
     outfile: path.join(distDir, 'main.js'),
     platform: 'node',
-    target: 'node16',
+    target: 'node18',
     external: ['electron'],
   });
   console.log('✓ Electron main process compiled.');
@@ -43,7 +42,7 @@ async function buildAll() {
     bundle: true,
     outfile: path.join(distDir, 'preload.js'),
     platform: 'node',
-    target: 'node16',
+    target: 'node18',
     external: ['electron'],
   });
   console.log('✓ Electron preload script compiled.');
@@ -55,7 +54,8 @@ async function buildAll() {
     bundle: true,
     outfile: path.join(distRendererDir, 'main.js'),
     platform: 'browser',
-    target: 'es2020',
+    target: 'chrome120',
+    format: 'iife',
     loader: { '.tsx': 'tsx', '.ts': 'ts', '.css': 'css' },
     define: { 'process.env.NODE_ENV': '"production"' },
   });
@@ -68,6 +68,32 @@ async function buildAll() {
     path.join(distRendererDir, 'index.html')
   );
   console.log('✓ Electron index.html copied.');
+
+  // 7. Minimal package.json so electron-builder can package desktop-app/dist on its own
+  const rootPkg = require('../package.json');
+  fs.writeFileSync(
+    path.join(distDir, 'package.json'),
+    JSON.stringify(
+      {
+        name: 'afterthought-desktop',
+        productName: 'AfterThought',
+        version: rootPkg.version,
+        description: 'Record any call on your computer with AfterThought.',
+        author: 'AfterThought',
+        main: 'main.js',
+      },
+      null,
+      2,
+    ),
+  );
+  console.log('✓ Desktop package.json written.');
+
+  // 8. App icon for the installers (generated; see desktop-app/png.js)
+  const { drawMark } = require('../desktop-app/png.js');
+  const buildDir = path.join(__dirname, '../desktop-app/build');
+  fs.mkdirSync(buildDir, { recursive: true });
+  fs.writeFileSync(path.join(buildDir, 'icon.png'), drawMark(1024, { background: '#0c0d12', ring: true }));
+  console.log('✓ Desktop app icon generated.');
 
   console.log('--- AfterThought Build Orchestration Complete ---');
 }

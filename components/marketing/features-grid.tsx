@@ -1,42 +1,42 @@
-import { Mic, FileText, Sparkles, ListChecks, Users, CalendarClock } from 'lucide-react'
+import { Mic, MessageCircle, Briefcase, Search, Languages, ShieldCheck } from 'lucide-react'
 import { Reveal } from '@/components/marketing/reveal'
 
 const FEATURES = [
   {
     icon: Mic,
-    title: 'Recording',
+    title: 'Every platform',
     description:
-      'Capture meeting audio straight from your browser with a single click — no bots, no setup.',
+      'Desktop app captures any app’s calls with one shortcut; the extension records browser calls; your phone records in person or imports call recordings.',
   },
   {
-    icon: FileText,
-    title: 'Transcription',
+    icon: MessageCircle,
+    title: 'Works in WhatsApp',
     description:
-      'Accurate, timestamped transcripts so you can revisit exactly what was said and when.',
+      'Send a voice note or forward a call recording to the AfterThought number and get notes back in the chat. Nothing to install.',
   },
   {
-    icon: Sparkles,
-    title: 'Summaries',
+    icon: Briefcase,
+    title: 'Interview scorecards',
     description:
-      'Concise AI summaries surface the decisions and key points from every conversation.',
+      'Score candidates against your rubric, with every judgement backed by a quote and timestamp you can play.',
   },
   {
-    icon: ListChecks,
-    title: 'Action Items',
+    icon: Search,
+    title: 'Answers you can hear',
     description:
-      'Tasks and follow-ups are extracted automatically and ready to assign after the call.',
+      'Ask anything across all your calls. Every answer cites the exact moment — click to hear it.',
   },
   {
-    icon: Users,
-    title: 'Speaker Profiles',
+    icon: Languages,
+    title: 'Speaks your languages',
     description:
-      'Recognise who said what and build a running profile of every participant over time.',
+      'Transcribes speakers who switch languages mid-sentence, and labels who said what — you or them.',
   },
   {
-    icon: CalendarClock,
-    title: 'Calendar Extraction',
+    icon: ShieldCheck,
+    title: 'Consent first, open source',
     description:
-      'Dates, deadlines, and scheduled follow-ups are detected and organised on your calendar.',
+      'Consent prompts on every recording, private audio storage, one-click delete. Self-host it if you prefer.',
   },
 ]
 
@@ -46,10 +46,10 @@ export function FeaturesGrid() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-12">
         <Reveal className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance font-heading text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Everything you need to never forget a meeting
+            Built for the calls other note-takers miss
           </h2>
           <p className="mt-4 text-pretty text-muted-foreground">
-            AfterThought handles the busywork so you can stay present in the conversation.
+            Not just Zoom at your desk — the WhatsApp interview, the phone call, the chat in the corridor.
           </p>
         </Reveal>
 

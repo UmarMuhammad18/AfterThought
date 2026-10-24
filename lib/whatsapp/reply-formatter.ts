@@ -5,8 +5,21 @@
 export type MeetingForReply = {
   id: string
   title?: string
-  summary?: string
-  action_items?: string[] | { text: string; owner?: string }[]
+  summary?: string | null
+  action_items?: string[] | { text: string; owner?: string }[] | null
+  scorecard?: { recommendation?: string; overall_score?: number; summary?: string } | null
+}
+
+const RECOMMENDATIONS: Record<string, string> = {
+  strong_yes: "Strong yes",
+  yes: "Yes",
+  maybe: "Maybe",
+  no: "No",
+  strong_no: "Strong no",
+}
+
+function appUrl(): string | null {
+  return process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") || null
 }
 
 export function formatMeetingReply(meeting: MeetingForReply): string {
@@ -26,25 +39,38 @@ export function formatMeetingReply(meeting: MeetingForReply): string {
         .join("\n")
   }
 
+  let scorecard = ""
+  if (meeting.scorecard?.recommendation) {
+    scorecard =
+      `\n\n🎯 *Interview:* ${RECOMMENDATIONS[meeting.scorecard.recommendation] ?? meeting.scorecard.recommendation}` +
+      (meeting.scorecard.overall_score ? ` (${meeting.scorecard.overall_score}/5)` : "")
+  }
+
+  const url = appUrl()
+  const link = url ? `\n\n🔗 Full transcript & audio: ${url}/meeting/${meeting.id}` : ""
+
   return (
     `📝 *${title}*\n\n` +
     `${summary}` +
+    scorecard +
     actions +
-    `\n\nReply with any question about this meeting or past ones.`
+    link +
+    `\n\nReply with any question about this conversation or past ones.`
   )
 }
 
 export function formatErrorReply(message: string): string {
-  return `⚠️ ${message}\n\nTry sending a voice note or text again.`
+  return `⚠️ ${message}`
 }
 
 export function formatHelpReply(): string {
   return (
     `👋 *AfterThought on WhatsApp*\n\n` +
     `Send me:\n` +
-    `• A *voice note* of a meeting → I will transcribe + summarize it\n` +
-    `• Text notes → I will structure them\n` +
-    `• A question about a past meeting\n\n` +
-    `Coming soon: call the number and I will record + note the call automatically.`
+    `• A *voice note* → transcript, summary and action items\n` +
+    `• A *call recording* (forward it, or share it from your phone's recorder)\n` +
+    `• *Text notes* → structured notes\n` +
+    `• A *question* about any past conversation\n` +
+    `• *link 123456* → connect this number to your AfterThought account (get the code in Settings)`
   )
 }

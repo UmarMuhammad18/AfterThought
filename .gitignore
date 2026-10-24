@@ -24,4 +24,7 @@ package-lock.json
 # Editor / OS
 .vscode/
 *.log
-Thumbs.db
+Thumbs.db
+tsconfig.tsbuildinfo
+desktop-app/release/
+desktop-app/build/icon.png

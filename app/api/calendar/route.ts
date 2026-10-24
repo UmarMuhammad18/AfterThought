@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 
-// Scaffolding route for Calendar Events.
-// Returns the authenticated user's calendar events. AI-driven creation of
-// events is intentionally left as scaffolding (see lib/calendar.ts).
+// GET /api/calendar -> dated action items extracted by the pipeline
+// (see lib/pipeline/side-effects.ts). Export with /api/calendar/ics.
 export async function GET(req: Request) {
   const user = await getUserFromRequest(req)
   if (!user) {

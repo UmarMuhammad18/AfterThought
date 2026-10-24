@@ -1,0 +1,50 @@
+name: Desktop installers
+
+# Builds Windows (.exe), macOS (.dmg) and Linux (.AppImage/.deb) installers.
+# Run it manually from the Actions tab, or push a tag like v1.2.0.
+# Builds are unsigned until signing certificates are added as secrets
+# (CSC_LINK / CSC_KEY_PASSWORD, and APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD / APPLE_TEAM_ID for notarisation).
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build installers
+        run: pnpm package:desktop
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+      - name: Smoke test (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: bash
+        run: AFTERTHOUGHT_SMOKE_TEST=1 ./desktop-app/release/win-unpacked/AfterThought.exe
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: afterthought-desktop-${{ matrix.os }}
+          path: |
+            desktop-app/release/*.exe
+            desktop-app/release/*.dmg
+            desktop-app/release/*.AppImage
+            desktop-app/release/*.deb
+          if-no-files-found: error

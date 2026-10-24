@@ -12,12 +12,14 @@
  *   loses the current segment.
  */
 
+import type { SegmentStore } from "./segment-store"
+
 export type CaptureMode = "mic" | "system" | "both"
 
 export type RecorderState = "idle" | "starting" | "recording" | "paused" | "finishing" | "done" | "error"
 
 export type RecordingMeta = {
-  source: "web" | "extension" | "desktop" | "mobile"
+  source: "web" | "extension" | "desktop" | "mobile" | "whatsapp_call"
   title?: string
   platform?: string
   kind?: "meeting" | "interview"
@@ -36,6 +38,8 @@ export type RecorderOptions = {
   /** Play captured call audio back to the user (needed when capture mutes the source, e.g. chrome.tabCapture). */
   monitorSystemAudio?: boolean
   segmentSeconds?: number
+  /** Keep segments on the device until uploaded (IndexedDB), so nothing is lost if the page dies. */
+  store?: SegmentStore
   onState?: (state: RecorderState) => void
   onError?: (message: string) => void
   onLevels?: (levels: { mic: number; system: number }) => void
@@ -86,7 +90,15 @@ export async function getDisplayAudioStream(): Promise<MediaStream> {
   return stream
 }
 
-type PendingUpload = { seq: number; blob: Blob; start: number; duration: number; attempts: number }
+type PendingUpload = {
+  seq: number
+  blob: Blob
+  start: number
+  duration: number
+  attempts: number
+  /** Resolves once the local backup is written (so it's never deleted before it exists). */
+  saved?: Promise<void>
+}
 
 export class SegmentedRecorder {
   private opts: RecorderOptions
@@ -142,6 +154,9 @@ export class SegmentedRecorder {
 
       this.mimeType = pickMimeType()
       this.meetingId = await this.createRecording(layout)
+      await this.persist(() =>
+        this.opts.store!.putRecording({ meetingId: this.meetingId!, apiBase: this.opts.apiBase, updatedAt: Date.now() }),
+      )
 
       // If the user stops sharing from the browser UI, finish gracefully.
       system?.getAudioTracks().forEach((t) => t.addEventListener("ended", () => void this.stop()))
@@ -186,6 +201,8 @@ export class SegmentedRecorder {
 
     try {
       await this.api(`/api/recordings/${this.meetingId}/finish`, { method: "POST", body: "{}" })
+      await Promise.all(this.backups)
+      await this.persist(() => this.opts.store!.deleteRecording(this.meetingId!))
       this.setState("done")
     } catch (err) {
       this.setState("error")
@@ -335,12 +352,39 @@ export class SegmentedRecorder {
   }
 
   private async rotate() {
+    if (this.state !== "recording" && this.state !== "paused") return
+    // Heartbeat (also while paused): tells other tabs this recording is still alive.
+    void this.persist(() =>
+      this.opts.store!.putRecording({ meetingId: this.meetingId!, apiBase: this.opts.apiBase, updatedAt: Date.now() }),
+    )
     if (this.state !== "recording") return
     await this.stopSegment()
     this.startSegment()
   }
 
+  /** Storage is best effort: a failing IndexedDB must never break recording. */
+  private async persist(fn: () => Promise<void>) {
+    if (!this.opts.store) return
+    try {
+      await fn()
+    } catch (err) {
+      console.warn("[recorder] local backup failed:", err)
+    }
+  }
+
+  private backups: Promise<void>[] = []
+
   private enqueue(item: PendingUpload) {
+    item.saved = this.persist(() =>
+      this.opts.store!.putSegment({
+        meetingId: this.meetingId!,
+        seq: item.seq,
+        blob: item.blob,
+        start: item.start,
+        duration: item.duration,
+      }),
+    )
+    this.backups.push(item.saved)
     this.queue.push(item)
     void this.pump()
   }
@@ -361,6 +405,7 @@ export class SegmentedRecorder {
           },
         })
         this.queue.shift()
+        void item.saved?.then(() => this.persist(() => this.opts.store!.deleteSegment(this.meetingId!, item.seq)))
         this.opts.onUpload?.({ seq: item.seq, pending: this.queue.length })
       } catch (err) {
         item.attempts++

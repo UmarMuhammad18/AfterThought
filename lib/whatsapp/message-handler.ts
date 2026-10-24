@@ -3,6 +3,7 @@ import type { IncomingMessage, WhatsAppAdapter } from "./types"
 import { formatMeetingReply, formatErrorReply, formatHelpReply } from "./reply-formatter"
 import { consumeLinkCode, getUserIdForPhone, normalizePhone } from "./users"
 import { deliver } from "./window"
+import { activeInviteFor, handleInterviewMessage, startInviteFromMessage } from "./interviews"
 import { supabaseAdmin } from "@/lib/supabase"
 import { askAcrossMeetings } from "@/lib/ai/meeting-memory"
 import { semanticEvidence } from "@/lib/ai/semantic-search"
@@ -151,6 +152,16 @@ export async function handleIncomingWhatsAppMessage(
   const text = msg.type === "text" ? msg.text?.trim() ?? "" : ""
 
   try {
+    const inviteCode = text.match(/^interview\s+([A-Za-z0-9]{6})$/i)
+    if (inviteCode) {
+      await startInviteFromMessage(adapter, to, inviteCode[1], msg.profileName)
+      return
+    }
+
+    // Candidates mid-interview: their messages are answers, not notes.
+    const invite = await activeInviteFor(to)
+    if (invite && (await handleInterviewMessage(adapter, invite, msg))) return
+
     if (msg.type === "text" && /^(hi|hello|help|start|\/start|menu)$/i.test(text)) {
       await deliver(adapter, to, formatHelpReply())
       return

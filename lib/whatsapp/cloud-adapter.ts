@@ -38,11 +38,36 @@ export function splitForWhatsApp(text: string, max = MAX_TEXT): string[] {
   return parts
 }
 
+/** POST to the Calling API: <PHONE_NUMBER_ID>/calls */
+export async function callsApi(body: Record<string, unknown>): Promise<Record<string, any>> {
+  const res = await fetch(graphUrl(`${process.env.WHATSAPP_PHONE_NUMBER_ID}/calls`), {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.WHATSAPP_ACCESS_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ messaging_product: "whatsapp", ...body }),
+  })
+  const data = (await res.json().catch(() => ({}))) as Record<string, any>
+  if (!res.ok) {
+    const message = data?.error?.message || `Calling API error ${res.status}`
+    const err = new Error(message) as Error & { code?: number }
+    err.code = data?.error?.code
+    throw err
+  }
+  return data
+}
+
 export class CloudWhatsAppAdapter implements WhatsAppAdapter {
   private token = process.env.WHATSAPP_ACCESS_TOKEN!
   private phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID!
 
   private async post(payload: Record<string, unknown>) {
+    await this.postRaw(payload)
+  }
+
+  /** Send any Cloud API message payload (interactive, call permission requests, ...). */
+  async postRaw(payload: Record<string, unknown>) {
     const res = await fetch(graphUrl(`${this.phoneNumberId}/messages`), {
       method: "POST",
       headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },

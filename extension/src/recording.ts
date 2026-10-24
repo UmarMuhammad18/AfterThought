@@ -3,6 +3,7 @@
 // the microphone, and streams segments to AfterThought via the shared recorder.
 
 import { SegmentedRecorder, getDisplayAudioStream, type CaptureMode } from "../../lib/capture/recorder"
+import { IdbSegmentStore, resumePendingUploads } from "../../lib/capture/segment-store"
 
 declare const chrome: any
 
@@ -70,8 +71,13 @@ async function main() {
   if (mode === "mic") tabBar.parentElement!.style.display = "none"
   if (mode === "system") micBar.parentElement!.style.display = "none"
 
+  const store = IdbSegmentStore.available() ? new IdbSegmentStore() : undefined
+  // Finish anything an earlier recorder tab left behind (closed mid-call).
+  if (store) void resumePendingUploads(store, async () => token).catch(() => undefined)
+
   const recorder = new SegmentedRecorder({
     apiBase,
+    store,
     getToken: async () => token,
     mode,
     getSystemStream: tabStream,

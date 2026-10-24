@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Search, BarChart3, Settings, Calendar, Users, LogOut, Mic } from 'lucide-react'
+import { Home, Search, BarChart3, Settings, Calendar, Users, LogOut, Mic, Briefcase } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/brand-logo'
 import { useAuth } from '@/components/auth-provider'
@@ -10,6 +10,7 @@ import { useAuth } from '@/components/auth-provider'
 const tabs = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
   { label: 'Record', href: '/record', icon: Mic },
+  { label: 'Interviews', href: '/interviews', icon: Briefcase },
   { label: 'Search', href: '/search', icon: Search },
   { label: 'Insights', href: '/insights', icon: BarChart3 },
   { label: 'Calendar', href: '/calendar', icon: Calendar },

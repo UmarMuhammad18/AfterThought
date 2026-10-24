@@ -69,6 +69,32 @@ async function buildAll() {
   );
   console.log('✓ Electron index.html copied.');
 
+  // 7. Minimal package.json so electron-builder can package desktop-app/dist on its own
+  const rootPkg = require('../package.json');
+  fs.writeFileSync(
+    path.join(distDir, 'package.json'),
+    JSON.stringify(
+      {
+        name: 'afterthought-desktop',
+        productName: 'AfterThought',
+        version: rootPkg.version,
+        description: 'Record any call on your computer with AfterThought.',
+        author: 'AfterThought',
+        main: 'main.js',
+      },
+      null,
+      2,
+    ),
+  );
+  console.log('✓ Desktop package.json written.');
+
+  // 8. App icon for the installers (generated; see desktop-app/png.js)
+  const { drawMark } = require('../desktop-app/png.js');
+  const buildDir = path.join(__dirname, '../desktop-app/build');
+  fs.mkdirSync(buildDir, { recursive: true });
+  fs.writeFileSync(path.join(buildDir, 'icon.png'), drawMark(1024, { background: '#0c0d12', ring: true }));
+  console.log('✓ Desktop app icon generated.');
+
   console.log('--- AfterThought Build Orchestration Complete ---');
 }
 

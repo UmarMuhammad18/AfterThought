@@ -26,6 +26,7 @@ import {
   type RecorderState,
 } from '@/lib/capture/recorder'
 import { importRecordingFile } from '@/lib/capture/importer'
+import { IdbSegmentStore, resumePendingUploads, type SegmentStore } from '@/lib/capture/segment-store'
 import { cn } from '@/lib/utils'
 
 type LiveLine = { speaker: string; text: string; timestamp?: string }
@@ -77,6 +78,22 @@ function RecordPage() {
   const [importProgress, setImportProgress] = useState<number | null>(null)
 
   const recorderRef = useRef<SegmentedRecorder | null>(null)
+  const storeRef = useRef<SegmentStore | null>(null)
+  const [recovered, setRecovered] = useState<string[]>([])
+
+  // Finish recordings a previous visit couldn't (closed tab, crash, offline).
+  useEffect(() => {
+    if (!IdbSegmentStore.available()) return
+    try {
+      storeRef.current = new IdbSegmentStore()
+    } catch {
+      return
+    }
+    const activeId = recorderRef.current?.id
+    resumePendingUploads(storeRef.current, getAccessToken, activeId ? [activeId] : [])
+      .then(setRecovered)
+      .catch((err) => console.warn('Could not resume pending uploads', err))
+  }, [getAccessToken])
 
   useEffect(() => {
     const supported = canCaptureSystemAudio()
@@ -173,6 +190,7 @@ function RecordPage() {
       onError: setError,
       onLevels: setLevels,
       onUpload: ({ pending }) => setPending(pending),
+      store: storeRef.current ?? undefined,
     })
     recorderRef.current = recorder
     try {
@@ -198,6 +216,17 @@ function RecordPage() {
           Capture any conversation — a call on this computer, an in-person meeting, or a phone call on speaker.
         </p>
       </header>
+
+      {recovered.length > 0 && (
+        <div className="glass flex flex-col gap-2 rounded-2xl p-4 text-sm text-foreground">
+          Recovered {recovered.length} recording{recovered.length === 1 ? '' : 's'} that didn&apos;t finish uploading last time:
+          {recovered.map((id) => (
+            <Link key={id} href={`/meeting/${id}`} className="text-primary hover:underline">
+              Open recovered recording
+            </Link>
+          ))}
+        </div>
+      )}
 
       {!active && !busy && (
         <>

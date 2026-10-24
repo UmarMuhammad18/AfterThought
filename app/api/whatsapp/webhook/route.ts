@@ -2,6 +2,7 @@ import { NextResponse, after } from "next/server"
 import { parseWebhookPayload, verifySignature } from "@/lib/whatsapp/webhook"
 import { handleIncomingWhatsAppMessage } from "@/lib/whatsapp/message-handler"
 import { recordInbound } from "@/lib/whatsapp/window"
+import { handleCallEvent } from "@/lib/whatsapp/calls"
 
 export const maxDuration = 300
 
@@ -47,7 +48,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Invalid JSON" }, { status: 400 })
   }
 
-  const messages = parseWebhookPayload(payload)
+  const { messages, callEvents } = parseWebhookPayload(payload)
+
+  // Call signalling is time-critical (the caller is ringing): handle it first.
+  if (callEvents.length > 0) {
+    after(async () => {
+      for (const event of callEvents) {
+        try {
+          await handleCallEvent(event)
+        } catch (err) {
+          console.error("[WhatsApp webhook] call event failed:", event.kind, err)
+        }
+      }
+    })
+  }
   if (messages.length > 0) {
     after(async () => {
       for (const msg of messages) {

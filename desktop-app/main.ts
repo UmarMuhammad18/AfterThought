@@ -14,6 +14,8 @@ import {
 import fs from 'fs';
 import path from 'path';
 import { startCallDetection, stopCallDetection } from './call-detection';
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { drawMark } = require('./png.js') as { drawMark: (size: number, opts?: { color?: string }) => Buffer };
 
 // macOS system-audio loopback (ScreenCaptureKit). Needs a recent Electron and
 // macOS 13+; harmless elsewhere.
@@ -26,6 +28,8 @@ type Config = { apiBase: string; apiKey: string; mode: 'both' | 'system' | 'mic'
 
 const DEFAULT_CONFIG: Config = { apiBase: 'http://localhost:3000', apiKey: '', mode: 'both', detectCalls: true };
 const TOGGLE_SHORTCUT = 'CommandOrControl+Shift+R';
+// CI / local smoke test: load the UI hidden, report errors, exit.
+const SMOKE_TEST = process.env.AFTERTHOUGHT_SMOKE_TEST === '1';
 
 let mainWindow: BrowserWindow | null = null;
 let tray: Tray | null = null;
@@ -56,6 +60,7 @@ function createWindow() {
     frame: false,
     alwaysOnTop: true,
     backgroundColor: '#0c0d12',
+    show: !SMOKE_TEST,
     title: 'AfterThought',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -65,6 +70,26 @@ function createWindow() {
   });
 
   mainWindow.loadFile(path.join(__dirname, 'renderer/index.html'));
+
+  if (SMOKE_TEST) {
+    const errors: string[] = [];
+    mainWindow.webContents.on('console-message', (event: any, level?: number, message?: string) => {
+      // Electron 35+ passes a details object; older versions pass positional args.
+      const lvl = typeof level === 'number' ? level : event?.level === 'error' ? 3 : 0;
+      const msg = message ?? event?.message ?? '';
+      if (lvl >= 3) errors.push(msg);
+    });
+    mainWindow.webContents.once('did-finish-load', async () => {
+      await new Promise((r) => setTimeout(r, 1500));
+      const ui = await mainWindow!.webContents.executeJavaScript(
+        "Boolean(window.desktopApi) && document.getElementById('root').childElementCount > 0",
+      );
+      console.log(`[smoke] electron ${process.versions.electron}, ui rendered: ${ui}, errors: ${errors.length}`);
+      errors.forEach((e) => console.log(`[smoke] renderer error: ${e}`));
+      (app as any).isQuitting = true;
+      app.exit(ui && errors.length === 0 ? 0 : 1);
+    });
+  }
 
   // Closing the window keeps the app in the tray so the shortcut still works.
   mainWindow.on('close', (e) => {
@@ -88,10 +113,10 @@ function toggleRecording(reason?: string) {
 }
 
 function trayIcon() {
-  // 16x16 dot drawn in code so the build has no binary assets to ship.
+  // Drawn in code (PNG; Electron's nativeImage can't load SVG) so there are no binary assets.
   const color = recordingState === 'recording' ? '#ef4444' : '#60a5fa';
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16"><circle cx="8" cy="8" r="6" fill="${color}"/></svg>`;
-  return nativeImage.createFromDataURL(`data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`);
+  const image = nativeImage.createFromBuffer(drawMark(32, { color }), { scaleFactor: 2 });
+  return image;
 }
 
 function updateTray() {
@@ -171,8 +196,10 @@ if (!app.requestSingleInstanceLock()) {
     tray.on('click', showWindow);
     updateTray();
 
-    globalShortcut.register(TOGGLE_SHORTCUT, () => toggleRecording());
-    setupCallDetection();
+    if (!SMOKE_TEST) {
+      globalShortcut.register(TOGGLE_SHORTCUT, () => toggleRecording());
+      setupCallDetection();
+    }
 
     app.on('activate', showWindow);
   });

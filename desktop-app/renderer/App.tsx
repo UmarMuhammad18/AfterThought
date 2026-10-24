@@ -5,6 +5,9 @@ import {
   type CaptureMode,
   type RecorderState,
 } from '../../lib/capture/recorder';
+import { IdbSegmentStore, resumePendingUploads } from '../../lib/capture/segment-store';
+
+const store = IdbSegmentStore.available() ? new IdbSegmentStore() : undefined;
 
 type DesktopConfig = { apiBase: string; apiKey: string; mode: CaptureMode; detectCalls: boolean };
 
@@ -88,6 +91,8 @@ export function App() {
     api.getConfig().then((c) => {
       setConfig(c);
       if (!c.apiKey) setShowSettings(true);
+      // Finish recordings interrupted by a crash or shutdown.
+      else if (store) void resumePendingUploads(store, async () => c.apiKey).catch(() => undefined);
     });
     api.platform().then(setPlatform);
   }, []);
@@ -108,6 +113,7 @@ export function App() {
         getToken: async () => config.apiKey,
         mode: config.mode,
         getSystemStream: platform === 'linux' ? linuxMonitorStream : getDisplayAudioStream,
+        store,
         meta: {
           source: 'desktop',
           title: title || undefined,

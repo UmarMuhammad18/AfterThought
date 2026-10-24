@@ -2,7 +2,7 @@ import type { ChannelLayout } from "@/lib/transcription"
 import type { MeetingKind, RecordingSource } from "@/lib/pipeline"
 import type { InterviewDetails } from "@/lib/ai/analysis"
 
-const SOURCES: RecordingSource[] = ["web", "extension", "desktop", "mobile", "import"]
+const SOURCES: RecordingSource[] = ["web", "extension", "desktop", "mobile", "import", "whatsapp_call"]
 
 /** Validate the options a client sends when starting a recording. */
 export function parseRecordingOptions(body: Record<string, unknown>) {

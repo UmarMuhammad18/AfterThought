@@ -227,3 +227,36 @@ ${meeting.action_items.map((a) => `- ${a}`).join("\n") || "none"}`,
     body: typeof data.body === "string" ? data.body : "",
   }
 }
+
+// ---------------------------------------------------------------------------
+// Interview questions (async WhatsApp interviews)
+// ---------------------------------------------------------------------------
+
+export const DEFAULT_INTERVIEW_QUESTIONS = [
+  "Tell us a bit about yourself and what you're doing now.",
+  "Why are you interested in this role?",
+  "Describe a project you're proud of. What was your part in it?",
+  "Tell us about a time something went wrong at work. What did you do?",
+  "Do you have any questions for us, or anything else we should know?",
+]
+
+/** Generate short, voice-friendly screening questions from a role and rubric. */
+export async function generateInterviewQuestions(details: InterviewDetails, count = 5): Promise<string[]> {
+  const raw = await chatCompletion({
+    systemMessage: "You write fair, job-related screening interview questions. Return strict JSON.",
+    userMessage: `Write ${count} screening interview questions for a candidate answering by WhatsApp voice note.
+Each must be answerable in about 1–2 minutes, open-ended, specific to the role, and free of anything
+about protected characteristics. Cover the rubric criteria. Return ONLY JSON: { "questions": ["..."] }
+
+Role: ${details.role || "Not specified"}
+Rubric / job description:
+${details.rubric?.trim() || DEFAULT_RUBRIC}`,
+    jsonResponse: true,
+    maxTokens: 800,
+  })
+  const data = parseJsonResponse(raw)
+  const questions = Array.isArray(data.questions)
+    ? data.questions.filter((q): q is string => typeof q === "string" && q.trim().length > 0).map((q) => q.trim())
+    : []
+  return questions.length ? questions.slice(0, 10) : DEFAULT_INTERVIEW_QUESTIONS
+}

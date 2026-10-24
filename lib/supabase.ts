@@ -1,5 +1,6 @@
 import { createClient, type User } from "@supabase/supabase-js"
 import { DEMO_TOKEN, getDemoUser, isDemoLoginEnabled } from "./demo"
+import { getUserFromApiKey, isApiKey } from "./api-keys"
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
@@ -27,6 +28,16 @@ export async function getUserFromToken(token: string | null | undefined): Promis
   // unless the flag is explicitly set, so real JWT validation is unaffected.
   if (isDemoLoginEnabled() && token === DEMO_TOKEN) {
     return getDemoUser()
+  }
+
+  // Long-lived API keys (extension, desktop app, other clients).
+  if (isApiKey(token)) {
+    try {
+      return await getUserFromApiKey(token)
+    } catch (err) {
+      console.error("Failed to validate API key:", err)
+      return null
+    }
   }
 
   try {

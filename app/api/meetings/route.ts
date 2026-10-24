@@ -11,7 +11,8 @@ export async function GET(req: Request) {
 
   const { data, error } = await supabase
     .from("meetings")
-    .select("*")
+    // Transcripts are excluded: the list view doesn't need them and they're large.
+    .select("id, title, summary, action_items, created_at, status, source, platform, kind, duration_seconds, error")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false })
 

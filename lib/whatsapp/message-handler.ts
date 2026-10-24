@@ -1,25 +1,25 @@
 import { getWhatsAppAdapter } from "./adapter"
-import type { IncomingMessage } from "./types"
-import {
-  formatMeetingReply,
-  formatErrorReply,
-  formatHelpReply,
-} from "./reply-formatter"
-import { transcribeAudio } from "./transcription"
-import { processMeetingFromTranscript } from "./meeting-processor"
+import type { IncomingMessage, WhatsAppAdapter } from "./types"
+import { formatMeetingReply, formatErrorReply, formatHelpReply } from "./reply-formatter"
+import { consumeLinkCode, getUserIdForPhone, normalizePhone } from "./users"
+import { deliver } from "./window"
 import { supabaseAdmin } from "@/lib/supabase"
-import { getUserIdForPhone } from "./users"
+import { askAcrossMeetings } from "@/lib/ai/meeting-memory"
+import { semanticEvidence } from "@/lib/ai/semantic-search"
+import { loadMemoryMeetings } from "@/lib/meetings-repo"
 import {
-  askMeetingAI,
-  askAcrossMeetings,
-  type MemoryMeeting,
-} from "@/lib/ai/meeting-memory"
+  completeMeeting,
+  createRecording,
+  finalizeRecording,
+  storeSegment,
+  type RecordingSource,
+} from "@/lib/pipeline"
 
 /**
  * Detect whether a text message is a question about past meetings
  * rather than new notes to store.
  */
-function looksLikeQuestion(text: string): boolean {
+export function looksLikeQuestion(text: string): boolean {
   const t = text.trim().toLowerCase()
   if (t.endsWith("?")) return true
   return /^(what|who|when|where|why|how|which|did|does|do|is|are|was|were|can|could|should|list|show|find|summarize|summary of|action items|decisions?|blockers?)\b/i.test(
@@ -27,239 +27,173 @@ function looksLikeQuestion(text: string): boolean {
   )
 }
 
-async function loadMeetingsForPhone(phone: string): Promise<MemoryMeeting[]> {
-  const userId = await getUserIdForPhone(phone)
-  const normalized = phone.replace(/\D/g, "")
+async function answerQuestion(adapter: WhatsAppAdapter, to: string, question: string) {
+  const userId = await getUserIdForPhone(to)
+  const meetings = await loadMemoryMeetings(userId ? { userId } : { phone: to })
 
-  try {
-    const supabase = supabaseAdmin()
-    let query = supabase
-      .from("meetings")
-      .select("id, title, summary, action_items, segments, created_at, whatsapp_phone, user_id")
-      .order("created_at", { ascending: false })
-      .limit(30)
-
-    if (userId) {
-      query = query.eq("user_id", userId)
-    } else if (normalized) {
-      query = query.eq("whatsapp_phone", normalized)
-    } else {
-      return []
-    }
-
-    const { data, error } = await query
-    if (error) {
-      console.warn("[WhatsApp] load meetings failed:", error.message)
-      return []
-    }
-
-    return (data || []).map((m: any) => ({
-      id: m.id,
-      title: m.title || "Untitled",
-      summary: m.summary || "",
-      action_items: m.action_items || [],
-      segments: Array.isArray(m.segments) ? m.segments : [],
-      created_at: m.created_at,
-    }))
-  } catch (err) {
-    console.warn("[WhatsApp] load meetings error:", err)
-    return []
+  if (meetings.length === 0) {
+    await deliver(
+      adapter,
+      to,
+      formatErrorReply(
+        "I don't have any conversations for this number yet. Send a voice note or forward a call recording first, or link your phone in AfterThought → Settings.",
+      ),
+    )
+    return
   }
+
+  await deliver(adapter, to, "🔍 Searching your conversations…")
+  const semantic = userId ? await semanticEvidence(question, userId, { limit: 8 }) : []
+  const { answer, evidence } = await askAcrossMeetings(question, meetings, semantic)
+
+  let reply = answer
+  if (evidence.length > 0) {
+    const cites = evidence
+      .slice(0, 3)
+      .map((e) => {
+        const snippet = e.text.replace(/\s+/g, " ")
+        return `• ${e.meetingTitle}${e.timestamp ? ` (${e.timestamp})` : ""}: ${snippet.slice(0, 90)}${snippet.length > 90 ? "…" : ""}`
+      })
+      .join("\n")
+    reply += `\n\n📎 Sources:\n${cites}`
+  }
+  await deliver(adapter, to, reply)
+}
+
+async function replyWithMeeting(adapter: WhatsAppAdapter, to: string, meetingId: string) {
+  const { data: meeting } = await supabaseAdmin()
+    .from("meetings")
+    .select("id, title, summary, action_items, status, error, scorecard")
+    .eq("id", meetingId)
+    .single()
+
+  if (!meeting || meeting.status === "failed") {
+    await deliver(adapter, to, formatErrorReply(meeting?.error || "I couldn't process that recording."))
+    return
+  }
+  await deliver(
+    adapter,
+    to,
+    formatMeetingReply(meeting),
+    `Your notes for "${meeting.title}" are ready in AfterThought.`,
+  )
+}
+
+async function processAudio(
+  adapter: WhatsAppAdapter,
+  msg: IncomingMessage,
+  source: RecordingSource,
+) {
+  const to = msg.from
+  const mediaRef = msg.mediaId || msg.mediaUrl
+  if (!mediaRef) {
+    await deliver(adapter, to, formatErrorReply("I received audio but no media reference."))
+    return
+  }
+
+  await deliver(
+    adapter,
+    to,
+    source === "whatsapp_call"
+      ? "📞 Call recording received — transcribing…"
+      : "🎙️ Got it — transcribing and summarising…",
+  )
+
+  const audio = await adapter.downloadMedia(mediaRef)
+  if (audio.length === 0) {
+    await deliver(adapter, to, formatErrorReply("I couldn't download that audio. Please try sending it again."))
+    return
+  }
+
+  const userId = await getUserIdForPhone(to)
+  const title = msg.filename ? msg.filename.replace(/\.[^.]+$/, "").slice(0, 120) : undefined
+  const meetingId = await createRecording({
+    userId,
+    source,
+    title,
+    platform: "WhatsApp",
+    whatsappPhone: to,
+  })
+  await storeSegment({
+    meetingId,
+    userId,
+    seq: 0,
+    audio,
+    mimeType: (msg.mediaMimeType || "audio/ogg").split(";")[0],
+    startSeconds: 0,
+  })
+  await finalizeRecording(meetingId)
+  await replyWithMeeting(adapter, to, meetingId)
+}
+
+async function processTextNote(adapter: WhatsAppAdapter, msg: IncomingMessage) {
+  const userId = await getUserIdForPhone(msg.from)
+  const meetingId = await createRecording({
+    userId,
+    source: "whatsapp_text",
+    platform: "WhatsApp",
+    whatsappPhone: msg.from,
+  })
+  await completeMeeting(meetingId, [{ speaker: msg.profileName || "Note", text: msg.text!.trim() }])
+  await replyWithMeeting(adapter, msg.from, meetingId)
 }
 
 /**
- * Central handler for every inbound WhatsApp message.
+ * Central handler for every inbound WhatsApp message. Callers should run it
+ * in the background (after()) so the webhook acknowledges Meta immediately.
  */
 export async function handleIncomingWhatsAppMessage(
   msg: IncomingMessage,
+  adapter: WhatsAppAdapter = getWhatsAppAdapter(),
 ): Promise<void> {
-  const adapter = getWhatsAppAdapter()
-  const to = msg.from
+  const to = normalizePhone(msg.from)
+  msg = { ...msg, from: to }
+  const text = msg.type === "text" ? msg.text?.trim() ?? "" : ""
 
   try {
-    // Help / start
-    if (
-      msg.type === "text" &&
-      msg.text &&
-      /^(hi|hello|help|start|\/start)$/i.test(msg.text.trim())
-    ) {
-      await adapter.sendMessage({ to, type: "text", text: formatHelpReply() })
+    if (msg.type === "text" && /^(hi|hello|help|start|\/start|menu)$/i.test(text)) {
+      await deliver(adapter, to, formatHelpReply())
       return
     }
 
-    // Text that looks like a question → search memory
-    if (msg.type === "text" && msg.text?.trim() && looksLikeQuestion(msg.text)) {
-      const meetings = await loadMeetingsForPhone(msg.from)
-
-      if (meetings.length === 0) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
-          text: formatErrorReply(
-            "I don't have any meetings linked to this number yet. Send a voice note or text notes first, or link your phone in the AfterThought app.",
-          ),
-        })
-        return
-      }
-
-      await adapter.sendMessage({
+    const link = text.match(/^link\s+(\d{6})$/i)
+    if (link) {
+      const ok = await consumeLinkCode(link[1], to)
+      await deliver(
+        adapter,
         to,
-        type: "text",
-        text: "🔍 Searching your meeting memory…",
-      })
-
-      const { answer, evidence } = await askAcrossMeetings(msg.text.trim(), meetings)
-
-      let reply = answer
-      if (evidence.length > 0) {
-        const cites = evidence
-          .slice(0, 3)
-          .map(
-            (e) =>
-              `• ${e.meetingTitle}${e.timestamp ? ` (${e.timestamp})` : ""}: ${e.text.slice(0, 80)}${e.text.length > 80 ? "…" : ""}`,
-          )
-          .join("\n")
-        reply += `\n\n📎 Evidence:\n${cites}`
-      }
-
-      await adapter.sendMessage({ to, type: "text", text: reply })
+        ok
+          ? "✅ This number is now linked to your AfterThought account. Everything you send here will appear in your dashboard."
+          : formatErrorReply("That code is invalid or has expired. Create a new one in AfterThought → Settings."),
+      )
       return
     }
 
-    // Text notes → process as a new meeting note
-    if (msg.type === "text" && msg.text?.trim()) {
-      const meeting = await processMeetingFromTranscript({
-        phone: msg.from,
-        transcriptText: msg.text.trim(),
-        title: "WhatsApp note",
-        source: "whatsapp_text",
-      })
-
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: formatMeetingReply(meeting),
-      })
+    if (msg.type === "text" && text && looksLikeQuestion(text)) {
+      await answerQuestion(adapter, to, text)
       return
     }
 
-    // Voice note / audio
+    if (msg.type === "text" && text) {
+      await processTextNote(adapter, msg)
+      return
+    }
+
     if (msg.type === "audio" || msg.type === "voice") {
-      const mediaRef = msg.mediaId || msg.mediaUrl
-      if (!mediaRef) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
-          text: formatErrorReply(
-            "I received a voice note but no media reference.",
-          ),
-        })
-        return
-      }
-
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: "🎙️ Got your voice note — transcribing and summarizing…",
-      })
-
-      const audioBuffer = await adapter.downloadMedia(mediaRef)
-      if (audioBuffer.length === 0) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
-          text: formatErrorReply(
-            "Could not download the voice note. For local testing, put a sample-voice-note.ogg in /samples.",
-          ),
-        })
-        return
-      }
-
-      const transcription = await transcribeAudio(
-        audioBuffer,
-        msg.mediaMimeType || "audio/ogg",
-      )
-
-      if (!transcription.text.trim()) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
-          text: formatErrorReply("Transcription came back empty."),
-        })
-        return
-      }
-
-      const meeting = await processMeetingFromTranscript({
-        phone: msg.from,
-        transcriptText: transcription.text,
-        segments: transcription.segments,
-        title: "WhatsApp voice note",
-        source: "whatsapp_voice",
-      })
-
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: formatMeetingReply(meeting),
-      })
+      await processAudio(adapter, msg, "whatsapp_voice")
       return
     }
 
-    // Call recording (Cloud API later)
     if (msg.type === "call_recording") {
-      const mediaRef = msg.mediaId || msg.mediaUrl
-      if (!mediaRef) {
-        await adapter.sendMessage({
-          to,
-          type: "text",
-          text: formatErrorReply("Call recording received but no media ID."),
-        })
-        return
-      }
-
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: "📞 Call recording received — processing notes…",
-      })
-
-      const audioBuffer = await adapter.downloadMedia(mediaRef)
-      const transcription = await transcribeAudio(
-        audioBuffer,
-        msg.mediaMimeType || "audio/ogg",
-      )
-
-      const meeting = await processMeetingFromTranscript({
-        phone: msg.from,
-        transcriptText: transcription.text,
-        segments: transcription.segments,
-        title: "WhatsApp call",
-        source: "whatsapp_call",
-      })
-
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: formatMeetingReply(meeting),
-      })
+      await processAudio(adapter, msg, "whatsapp_call")
       return
     }
 
-    await adapter.sendMessage({
-      to,
-      type: "text",
-      text: formatHelpReply(),
-    })
+    await deliver(adapter, to, formatHelpReply())
   } catch (err) {
     console.error("[WhatsApp] handleIncomingWhatsAppMessage error:", err)
     try {
-      await adapter.sendMessage({
-        to,
-        type: "text",
-        text: formatErrorReply(
-          "Something went wrong while processing your message.",
-        ),
-      })
+      await deliver(adapter, to, formatErrorReply("Something went wrong while processing your message."))
     } catch {
       // swallow
     }

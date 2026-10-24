@@ -6,13 +6,13 @@ const STEPS = [
     icon: Mic,
     step: '01',
     title: 'Record',
-    description: 'Start capturing meeting audio from the browser extension in one click.',
+    description: 'Press Ctrl/Cmd+Shift+R on desktop, click the extension, tap Record on your phone, or message WhatsApp.',
   },
   {
     icon: UploadCloud,
     step: '02',
     title: 'Upload',
-    description: 'Audio is securely sent to your AfterThought account when the call ends.',
+    description: 'Audio uploads in small segments while you talk, so long calls are safe and notes are ready fast.',
   },
   {
     icon: Cpu,
@@ -24,7 +24,7 @@ const STEPS = [
     icon: FolderTree,
     step: '04',
     title: 'Organise',
-    description: 'Summaries, action items, and speakers land neatly in your dashboard.',
+    description: 'Summaries, action items, scorecards and playable transcripts land in your dashboard — and in WhatsApp.',
   },
 ]
 

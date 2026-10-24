@@ -24,4 +24,4 @@ package-lock.json
 # Editor / OS
 .vscode/
 *.log
-Thumbs.db
+Thumbs.dbtsconfig.tsbuildinfo

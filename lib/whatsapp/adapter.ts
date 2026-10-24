@@ -1,9 +1,9 @@
 import type { WhatsAppAdapter } from "./types"
+import { CloudWhatsAppAdapter, isCloudApiConfigured } from "./cloud-adapter"
 
 /**
- * Global adapter holder.
- * In development we set the MockWhatsAppAdapter.
- * When you have Cloud API credentials, swap in the real implementation.
+ * Global adapter holder. The real Cloud API adapter is used automatically
+ * when its env vars are set; the mock route installs MockWhatsAppAdapter.
  */
 let currentAdapter: WhatsAppAdapter | null = null
 
@@ -12,9 +12,12 @@ export function setWhatsAppAdapter(adapter: WhatsAppAdapter) {
 }
 
 export function getWhatsAppAdapter(): WhatsAppAdapter {
+  if (!currentAdapter && isCloudApiConfigured()) {
+    currentAdapter = new CloudWhatsAppAdapter()
+  }
   if (!currentAdapter) {
     throw new Error(
-      "WhatsApp adapter not set. Call setWhatsAppAdapter() first (use MockWhatsAppAdapter in development).",
+      "WhatsApp adapter not set. Configure WHATSAPP_ACCESS_TOKEN and WHATSAPP_PHONE_NUMBER_ID, or use MockWhatsAppAdapter in development.",
     )
   }
   return currentAdapter

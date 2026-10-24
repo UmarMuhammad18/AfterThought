@@ -8,11 +8,11 @@ export function CtaBand() {
       <Reveal className="mx-auto w-full max-w-4xl">
         <div className="glass-neon flex flex-col items-center gap-6 rounded-3xl px-6 py-14 text-center">
           <h2 className="text-balance font-heading text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Start remembering every meeting
+            Start remembering every conversation
           </h2>
           <p className="max-w-xl text-pretty text-muted-foreground">
-            Install the browser extension and connect your account to turn conversations into
-            organised, searchable memory.
+            Sign up, then record from the web app, the desktop app, the browser extension or
+            WhatsApp — all in one memory.
           </p>
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             <Link

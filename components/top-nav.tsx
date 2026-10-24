@@ -2,18 +2,18 @@
 
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { Home, Search, BarChart3, Settings, Calendar, Users, Mail, LogOut } from 'lucide-react'
+import { Home, Search, BarChart3, Settings, Calendar, Users, LogOut, Mic } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { BrandLogo } from '@/components/brand-logo'
 import { useAuth } from '@/components/auth-provider'
 
 const tabs = [
   { label: 'Dashboard', href: '/dashboard', icon: Home },
+  { label: 'Record', href: '/record', icon: Mic },
   { label: 'Search', href: '/search', icon: Search },
   { label: 'Insights', href: '/insights', icon: BarChart3 },
   { label: 'Calendar', href: '/calendar', icon: Calendar },
   { label: 'Speakers', href: '/speakers', icon: Users },
-  { label: 'Templates', href: '/templates', icon: Mail },
   { label: 'Settings', href: '/settings', icon: Settings },
 ]
 
@@ -37,12 +37,12 @@ export function TopNav() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6 lg:px-8">
       <nav className="glass mx-auto flex h-14 w-full max-w-7xl items-center justify-between rounded-2xl px-3 sm:px-4">
-        <Link href="/dashboard" className="flex items-center" aria-label="AfterThought dashboard">
+        <Link href="/dashboard" className="flex shrink-0 items-center" aria-label="AfterThought dashboard">
           <BrandLogo />
         </Link>
 
         {showNav && (
-          <div className="flex items-center gap-1">
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
             {tabs.map((tab) => {
               const active = pathname.startsWith(tab.href)
               const Icon = tab.icon
@@ -52,7 +52,7 @@ export function TopNav() {
                   href={tab.href}
                   aria-current={active ? 'page' : undefined}
                   className={cn(
-                    'relative flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors',
+                    'relative flex shrink-0 items-center gap-2 rounded-xl px-2 py-2 text-sm font-medium transition-colors sm:px-3',
                     active
                       ? 'text-foreground'
                       : 'text-muted-foreground hover:text-foreground',

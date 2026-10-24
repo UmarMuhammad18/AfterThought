@@ -19,6 +19,7 @@ export type MeetingSegment = {
   speaker: string
   text: string
   timestamp?: string
+  start?: number
 }
 
 export type MemoryMeeting = {
@@ -34,6 +35,8 @@ export type EvidenceSnippet = {
   text: string
   speaker?: string
   timestamp?: string
+  /** Seconds into the recording, for jump-to-moment links. */
+  start?: number
   meetingId: string
   meetingTitle: string
   score: number
@@ -42,7 +45,8 @@ export type EvidenceSnippet = {
 function tokenize(value: string): string[] {
   return value
     .toLowerCase()
-    .replace(/[^a-z0-9\s]/g, " ")
+    // Unicode-aware so Arabic, Hindi, Cyrillic, etc. transcripts are searchable.
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
     .split(/\s+/)
     .filter((w) => w.length > 2)
 }
@@ -79,6 +83,7 @@ export function relatedResults(
           meetingTitle: meeting.title,
           speaker: segment.speaker,
           text: segment.text,
+          start: segment.start,
           timestamp:
             segment.timestamp ??
             `${String(Math.floor(index / 2)).padStart(2, "0")}:${String((index % 2) * 30).padStart(2, "0")}`,
@@ -88,6 +93,26 @@ export function relatedResults(
     .filter((r) => r.score > 0)
     .sort((a, b) => b.score - a.score)
     .slice(0, limit)
+}
+
+/** Combine evidence lists, dropping duplicates of the same passage. */
+export function mergeEvidence(
+  primary: EvidenceSnippet[],
+  secondary: EvidenceSnippet[],
+  limit = 12,
+): EvidenceSnippet[] {
+  const seen = new Set<string>()
+  const out: EvidenceSnippet[] = []
+  for (const e of [...primary, ...secondary]) {
+    const key = `${e.meetingId}:${e.text.slice(0, 80)}`
+    if (seen.has(key)) continue
+    // Semantic chunks contain several lines; skip keyword hits already inside one.
+    if (out.some((o) => o.meetingId === e.meetingId && o.text.includes(e.text.slice(0, 60)))) continue
+    seen.add(key)
+    out.push(e)
+    if (out.length >= limit) break
+  }
+  return out
 }
 
 /**
@@ -123,8 +148,10 @@ export async function askMeetingAI(
 export async function askAcrossMeetings(
   question: string,
   meetings: MemoryMeeting[],
+  /** Extra evidence, e.g. from semantic (embedding) search, ranked first. */
+  extraEvidence: EvidenceSnippet[] = [],
 ): Promise<{ answer: string; evidence: EvidenceSnippet[] }> {
-  const evidence = relatedResults(question, meetings, 10)
+  const evidence = mergeEvidence(extraEvidence, relatedResults(question, meetings, 10), 12)
 
   if (!isAiConfigured()) {
     return {

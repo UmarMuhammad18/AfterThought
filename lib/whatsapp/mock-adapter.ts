@@ -7,10 +7,12 @@ import path from "path"
  * without any Meta Cloud API credentials.
  */
 export class MockWhatsAppAdapter implements WhatsAppAdapter {
+  readonly isMock = true
+
   async sendMessage(msg: OutgoingMessage): Promise<void> {
     console.log("\n=== MOCK WhatsApp OUTGOING ===")
     console.log(`To: ${msg.to}`)
-    console.log(msg.text ?? "(no text)")
+    console.log(msg.text ?? (msg.template ? `[template ${msg.template.name}] ${msg.template.bodyParams?.join(" | ")}` : "(no text)"))
     console.log("==============================\n")
   }
 

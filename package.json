@@ -7,9 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "extension": "echo \"Open the /extension folder for the browser extension files.\"",
-    "desktop": "electron desktop-app/dist/main.js",
-    "build:desktop": "node scripts/build.js"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:clients": "node scripts/build.js",
+    "desktop": "node scripts/build.js && electron desktop-app/dist/main.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -20,7 +21,6 @@
     "framer-motion": "^12.40.0",
     "lucide-react": "^1.16.0",
     "next": "16.2.6",
-    "next-pwa": "^5.6.0",
     "react": "^19",
     "react-dom": "^19",
     "shadcn": "^4.8.0",
@@ -36,11 +36,13 @@
     "esbuild": "^0.21.5",
     "postcss": "^8.5",
     "tailwindcss": "^4.2.0",
-    "typescript": "5.7.3"
+    "typescript": "5.7.3",
+    "vitest": "3.2.4"
   },
   "pnpm": {
     "overrides": {
       "hono": "4.12.25"
     }
-  }
+  },
+  "packageManager": "pnpm@10.34.4"
 }

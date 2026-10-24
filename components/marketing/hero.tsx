@@ -31,22 +31,23 @@ export function Hero() {
           className="glass-neon inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-sm text-muted-foreground"
         >
           <Sparkles className="size-3.5 text-primary" />
-          AI meeting memory engine
+          Any call · any app · any device
         </motion.span>
 
         <motion.h1
           variants={item}
           className="text-balance font-heading text-5xl font-bold leading-[1.05] tracking-tight text-foreground sm:text-6xl md:text-7xl"
         >
-          Your AI-powered meeting memory.
+          Record any call. Remember everything.
         </motion.h1>
 
         <motion.p
           variants={item}
           className="max-w-2xl text-pretty text-lg leading-relaxed text-muted-foreground"
         >
-          AfterThought records, transcribes, and organises every meeting automatically — turning
-          conversations into searchable summaries, action items, and speaker insights.
+          WhatsApp, Zoom, Meet, Teams, phone calls or in person — on your laptop, phone or in the
+          browser. AfterThought turns every conversation into a searchable transcript, action items
+          and interview scorecards, with the audio one click away.
         </motion.p>
 
         <motion.div variants={item} className="flex flex-col items-center gap-3 sm:flex-row">

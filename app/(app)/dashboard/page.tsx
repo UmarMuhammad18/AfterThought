@@ -1,21 +1,17 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Brain, Clock, Layers, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { Brain, Clock, Layers, Loader2, Mic } from 'lucide-react'
 import { SearchBar } from '@/components/search-bar'
 import { MeetingCard } from '@/components/meeting-card'
 import { authFetch } from '@/lib/api-client'
 import type { Meeting } from '@/lib/data'
 
-const stats = [
-  { icon: Layers, label: 'Meetings remembered', value: '128' },
-  { icon: Clock, label: 'Hours indexed', value: '94.5' },
-  { icon: Brain, label: 'Insights generated', value: '1,402' },
-]
-
 export default function DashboardPage() {
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [loading, setLoading] = useState(true)
+  const [totals, setTotals] = useState({ meetings: 0, hours: 0, actionItems: 0 })
 
   useEffect(() => {
     async function loadMeetings() {
@@ -32,7 +28,28 @@ export default function DashboardPage() {
       }
     }
     loadMeetings()
+    authFetch('/api/insights')
+      .then((r) => r.json())
+      .then((d) => d.ok && setTotals(d.totals))
+      .catch(() => undefined)
   }, [])
+
+  // Keep cards for in-progress recordings fresh.
+  useEffect(() => {
+    if (!meetings.some((m) => m.status === 'processing' || m.status === 'recording')) return
+    const t = setInterval(async () => {
+      const res = await authFetch('/api/meetings')
+      const data = await res.json()
+      if (data.ok) setMeetings(data.meetings)
+    }, 5000)
+    return () => clearInterval(t)
+  }, [meetings])
+
+  const stats = [
+    { icon: Layers, label: 'Conversations remembered', value: totals.meetings.toLocaleString() },
+    { icon: Clock, label: 'Hours recorded', value: totals.hours.toLocaleString() },
+    { icon: Brain, label: 'Action items captured', value: totals.actionItems.toLocaleString() },
+  ]
 
   return (
     <div className="flex flex-col gap-10">
@@ -41,18 +58,26 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-3">
           <span className="inline-flex w-fit items-center gap-2 rounded-full border border-glass-border bg-glass px-3 py-1 text-xs text-muted-foreground">
             <span className="size-1.5 rounded-full bg-pink" />
-            AI meeting memory engine
+            Any call · any device
           </span>
           <h1 className="text-balance font-heading text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-            Every meeting, perfectly remembered.
+            Every conversation, remembered.
           </h1>
           <p className="max-w-2xl text-pretty leading-relaxed text-muted-foreground">
-            Search, summarize, and revisit every conversation. AfterThought turns
-            your meetings into a living, queryable memory.
+            Record calls on WhatsApp, Zoom, Meet, Teams, the phone or in person —
+            then search, summarise and revisit all of them in one place.
           </p>
         </div>
 
-        <SearchBar size="lg" className="max-w-3xl" />
+        <div className="flex max-w-3xl flex-col gap-3 sm:flex-row">
+          <SearchBar size="lg" className="flex-1" />
+          <Link
+            href="/record"
+            className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
+          >
+            <Mic className="size-4" /> Record
+          </Link>
+        </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           {stats.map((s) => {
@@ -84,13 +109,20 @@ export default function DashboardPage() {
             Recent meetings
           </h2>
           <span className="text-sm text-muted-foreground">
-            {meetings.length} meetings
+            {meetings.length} conversation{meetings.length === 1 ? '' : 's'}
           </span>
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center py-20">
             <Loader2 className="size-8 animate-spin text-primary" />
+          </div>
+        ) : meetings.length === 0 ? (
+          <div className="glass flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
+            <p className="text-muted-foreground">Nothing recorded yet.</p>
+            <Link href="/record" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+              Record your first conversation
+            </Link>
           </div>
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

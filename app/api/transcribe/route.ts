@@ -1,114 +1,37 @@
-import { NextResponse } from "next/server"
-import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
-import { sendFollowUpEmail } from "@/lib/email"
-import { createCalendarEvent } from "@/lib/calendar"
-import { updateSpeakerProfile } from "@/lib/speakers"
-import { analyzeTranscript, isAiConfigured, GeminiServiceError } from "./ai"
+import { NextResponse, after } from "next/server"
+import { getUserFromRequest } from "@/lib/supabase"
+import { createRecording, finalizeRecording, storeSegment } from "@/lib/pipeline"
 
+export const maxDuration = 300
+
+// POST /api/transcribe — one-shot upload of a short, complete recording.
+// Kept for older clients; new clients use /api/recordings (segmented upload),
+// which has no length limit. Returns immediately; processing runs in the
+// background and the meeting page shows progress.
 export async function POST(req: Request) {
   const user = await getUserFromRequest(req)
   if (!user) {
     return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
   }
 
-  const supabase = supabaseAdmin()
-
   try {
-    const audio = await req.arrayBuffer()
-
-    // arrayBuffer() always returns an ArrayBuffer (never null), so check byteLength.
-    if (audio.byteLength === 0) {
-      return NextResponse.json(
-        { ok: false, error: "No audio received" },
-        { status: 400 }
-      )
+    const audio = Buffer.from(await req.arrayBuffer())
+    if (audio.length === 0) {
+      return NextResponse.json({ ok: false, error: "No audio received" }, { status: 400 })
     }
 
-    const id = crypto.randomUUID()
+    const mimeType = (req.headers.get("content-type") || "audio/webm").split(";")[0]
+    const id = await createRecording({ userId: user.id, source: "extension" })
+    await storeSegment({ meetingId: id, userId: user.id, seq: 0, audio, mimeType, startSeconds: 0 })
 
-    // Temporary fake transcript
-    const segments = [
-      { speaker: "Speaker 1", text: "Welcome to the meeting." },
-      { speaker: "Speaker 2", text: "Let's begin with the agenda." },
-      { speaker: "Speaker 1", text: "We need to finalize the project timeline." }
-    ]
+    after(() => finalizeRecording(id))
 
-    // Placeholder defaults, used when AI is not configured or analysis fails.
-    let summary = "This is a placeholder summary generated for the meeting."
-
-    let actionItems = [
-      "Follow up with the client",
-      "Prepare the proposal",
-      "Schedule next meeting"
-    ]
-
-    // Run the extracted AI pipeline on the transcript text when configured.
-    if (isAiConfigured()) {
-      try {
-        const transcriptText = segments.map((s) => `${s.speaker}: ${s.text}`).join("\n")
-        const analysis = await analyzeTranscript(transcriptText)
-
-        if (analysis.summary) summary = analysis.summary
-
-        if (analysis.action_items.length > 0) {
-          actionItems = analysis.action_items.map((item) => {
-            const meta = [item.owner, item.deadline].filter(Boolean).join(" — ")
-            return meta ? `${item.task} (${meta})` : item.task
-          })
-        }
-      } catch (err) {
-        if (err instanceof GeminiServiceError) {
-          console.error("[v0] AI analysis failed, using placeholders:", err.message)
-        } else {
-          console.error("[v0] Unexpected AI analysis error:", err)
-        }
-      }
-    }
-
-    // --- SCAFFOLDING PLACEHOLDERS ---
-    
-    // 1. Automatic follow-up email
-    // await sendFollowUpEmail(id, summary, actionItems, "user@example.com");
-
-    // 2. Calendar integration
-    // for (const item of actionItems) {
-    //   await createCalendarEvent(item, id);
-    // }
-
-    // 3. Speaker profiles
-    // const uniqueSpeakers = Array.from(new Set(segments.map(s => s.speaker)));
-    // for (const speaker of uniqueSpeakers) {
-    //   // Pass empty objects/arrays as placeholders for mentions and individual action items
-    //   await updateSpeakerProfile(speaker, id, {}, []);
-    // }
-
-    // --------------------------------
-
-    const { error } = await supabase
-      .from("meetings")
-      .insert({
-        id,
-        user_id: user.id,
-        title: "New Recording",
-        summary,
-        action_items: actionItems,
-        segments,
-      })
-
-    if (error) {
-      console.error(error)
-      return NextResponse.json(
-        { ok: false, error: error.message },
-        { status: 500 }
-      )
-    }
-
-    return NextResponse.json({ ok: true, id })
+    return NextResponse.json({ ok: true, id, status: "processing" })
   } catch (err) {
     console.error("Transcribe API error:", err)
     return NextResponse.json(
-      { ok: false, error: "Server error" },
-      { status: 500 }
+      { ok: false, error: err instanceof Error ? err.message : "Server error" },
+      { status: 500 },
     )
   }
 }

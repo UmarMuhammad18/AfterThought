@@ -336,3 +336,60 @@ button:disabled {
     transform: rotate(360deg);
   }
 }
+
+/* ---------- Consent / options checkboxes ---------- */
+.consent {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--fg);
+  text-align: left;
+}
+
+.consent input {
+  margin-top: 2px;
+  accent-color: var(--neon);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+select.token-input {
+  appearance: auto;
+}
+
+/* ---------- Level meters ---------- */
+.meter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.meter span {
+  width: 32px;
+  text-align: left;
+}
+
+.meter-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.meter-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--neon);
+  transition: width 0.1s linear;
+}

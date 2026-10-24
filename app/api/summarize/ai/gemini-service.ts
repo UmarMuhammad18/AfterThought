@@ -26,16 +26,19 @@ export function isAiConfigured(): boolean {
   return getApiKey() !== null
 }
 
-interface ChatCompletionOptions {
+export interface ChatCompletionOptions {
   systemMessage: string
   userMessage: string
   jsonResponse?: boolean
+  /** Upper bound on the response length. Analysis JSON for long meetings needs room. */
+  maxTokens?: number
 }
 
-async function chatCompletion({
+export async function chatCompletion({
   systemMessage,
   userMessage,
   jsonResponse,
+  maxTokens = 4000,
 }: ChatCompletionOptions): Promise<string> {
   const apiKey = getApiKey()
   if (!apiKey) {
@@ -53,7 +56,7 @@ async function chatCompletion({
       { role: "user", content: userMessage },
     ],
     temperature: 0.2,
-    max_tokens: 1200,
+    max_tokens: maxTokens,
   }
 
   if (jsonResponse) {
@@ -96,22 +99,30 @@ async function chatCompletion({
   return content
 }
 
+/** Parse model output that should be JSON, tolerating ```json fences. */
+export function parseJsonResponse(text: string): Record<string, unknown> {
+  let rawText = (text || "").trim()
+  const fenced = rawText.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/)
+  if (fenced) rawText = fenced[1]
+  if (!rawText) {
+    throw new GeminiServiceError("OpenRouter returned an empty response.")
+  }
+  try {
+    return JSON.parse(rawText) as Record<string, unknown>
+  } catch {
+    throw new GeminiServiceError(
+      "OpenRouter returned invalid JSON. Try again or simplify the transcript."
+    )
+  }
+}
+
 function parseAnalysisResponse(text: string): MeetingAnalysis {
   const rawText = (text || "").trim()
   if (!rawText) {
     throw new GeminiServiceError("OpenRouter returned an empty analysis.")
   }
 
-  let data: Record<string, unknown>
-  try {
-    data = JSON.parse(rawText) as Record<string, unknown>
-  } catch {
-    throw new GeminiServiceError(
-      "OpenRouter returned invalid JSON. Try again or simplify the transcript."
-    )
-  }
-
-  return normalizeAnalysis(data)
+  return normalizeAnalysis(parseJsonResponse(rawText))
 }
 
 // Equivalent to GeminiService.analyze_transcript.

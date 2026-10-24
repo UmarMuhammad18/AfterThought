@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin, getUserFromRequest } from "@/lib/supabase"
 
-// Scaffolding route for Speaker Profiles.
-// Returns the authenticated user's speakers. AI-driven population of this
-// table is intentionally left as scaffolding (see lib/speakers.ts).
+// GET /api/speakers -> the user's speaker profiles (populated by the
+// pipeline from named speakers; see lib/pipeline/side-effects.ts).
 export async function GET(req: Request) {
   const user = await getUserFromRequest(req)
   if (!user) {

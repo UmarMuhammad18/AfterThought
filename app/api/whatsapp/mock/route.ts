@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server"
-import { setWhatsAppAdapter } from "@/lib/whatsapp/adapter"
 import { MockWhatsAppAdapter } from "@/lib/whatsapp/mock-adapter"
 import { handleIncomingWhatsAppMessage } from "@/lib/whatsapp/message-handler"
 import type { IncomingMessage } from "@/lib/whatsapp/types"
 
+export const maxDuration = 300
+
 /**
- * Local test endpoint.
+ * Local test endpoint (disabled in production unless WHATSAPP_MOCK_ENABLED=true).
  * POST a fake WhatsApp event and the full pipeline runs against the mock adapter.
  *
  * Example:
@@ -14,10 +15,11 @@ import type { IncomingMessage } from "@/lib/whatsapp/types"
  *   -d '{"from":"15551234567","type":"text","text":"Help"}'
  */
 export async function POST(req: Request) {
-  try {
-    // Always use the mock while we do not have Cloud API credentials
-    setWhatsAppAdapter(new MockWhatsAppAdapter())
+  if (process.env.NODE_ENV === "production" && process.env.WHATSAPP_MOCK_ENABLED !== "true") {
+    return NextResponse.json({ ok: false, error: "Not found" }, { status: 404 })
+  }
 
+  try {
     const body = await req.json()
 
     const msg: IncomingMessage = {
@@ -29,10 +31,11 @@ export async function POST(req: Request) {
       mediaId: body.mediaId,
       mediaUrl: body.mediaUrl,
       mediaMimeType: body.mediaMimeType,
+      filename: body.filename,
       callId: body.callId,
     }
 
-    await handleIncomingWhatsAppMessage(msg)
+    await handleIncomingWhatsAppMessage(msg, new MockWhatsAppAdapter())
 
     return NextResponse.json({
       ok: true,
@@ -40,9 +43,6 @@ export async function POST(req: Request) {
     })
   } catch (err) {
     console.error("[WhatsApp mock] error:", err)
-    return NextResponse.json(
-      { ok: false, error: String(err) },
-      { status: 500 },
-    )
+    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
   }
 }

@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server"
-import { getUserFromRequest, supabaseAdmin } from "@/lib/supabase"
+import { getUserFromRequest } from "@/lib/supabase"
 import {
   askMeetingAI,
   askAcrossMeetings,
   relatedResults,
-  type MemoryMeeting,
+  mergeEvidence,
 } from "@/lib/ai/meeting-memory"
+import { semanticEvidence } from "@/lib/ai/semantic-search"
+import { loadMemoryMeetings } from "@/lib/meetings-repo"
 
 type SearchBody = {
   q?: string
@@ -13,36 +15,12 @@ type SearchBody = {
   meetingId?: string
 }
 
-async function loadUserMeetings(userId: string): Promise<MemoryMeeting[]> {
-  const supabase = supabaseAdmin()
-  const { data, error } = await supabase
-    .from("meetings")
-    .select("id, title, summary, action_items, segments, created_at")
-    .eq("user_id", userId)
-    .order("created_at", { ascending: false })
-    .limit(50)
-
-  if (error) {
-    console.error("[search] load meetings:", error.message)
-    return []
-  }
-
-  return (data || []).map((m: any) => ({
-    id: m.id,
-    title: m.title || "Untitled",
-    summary: m.summary || "",
-    action_items: m.action_items || [],
-    segments: Array.isArray(m.segments) ? m.segments : [],
-    created_at: m.created_at,
-  }))
-}
-
 async function handleSearch(
   question: string,
   userId: string,
   meetingId?: string | null,
 ) {
-  const meetings = await loadUserMeetings(userId)
+  const meetings = await loadMemoryMeetings({ userId })
 
   if (meetings.length === 0) {
     return NextResponse.json({
@@ -56,8 +34,11 @@ async function handleSearch(
 
   if (meetingId) {
     const selected = meetings.find((m) => m.id === meetingId) ?? meetings[0]
-    const answer = await askMeetingAI(question, selected)
-    const results = relatedResults(question, [selected], 6)
+    const [answer, semantic] = await Promise.all([
+      askMeetingAI(question, selected),
+      semanticEvidence(question, userId, { meetingId: selected.id, limit: 6 }),
+    ])
+    const results = mergeEvidence(semantic, relatedResults(question, [selected], 6), 6)
 
     return NextResponse.json({
       ok: true,
@@ -74,7 +55,8 @@ async function handleSearch(
   }
 
   // Cross-meeting
-  const { answer, evidence } = await askAcrossMeetings(question, meetings)
+  const semantic = await semanticEvidence(question, userId, { limit: 10 })
+  const { answer, evidence } = await askAcrossMeetings(question, meetings, semantic)
 
   return NextResponse.json({
     ok: true,

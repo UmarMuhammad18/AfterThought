@@ -57,6 +57,7 @@ const styles: Record<string, React.CSSProperties> = {
   label: { fontSize: 12, color: '#9ca3af', display: 'flex', flexDirection: 'column', gap: 6 },
   input: { background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 10, color: '#e5e7eb', padding: '9px 11px', fontSize: 13 },
   primary: { background: '#60a5fa', color: '#0c0d12', border: 0, borderRadius: 12, padding: '12px', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
+  // Note: press feedback (scale 0.97) lives in renderer/index.html's stylesheet.
   secondary: { background: 'rgba(255,255,255,0.06)', color: '#e5e7eb', border: '1px solid rgba(255,255,255,0.12)', borderRadius: 12, padding: '10px', fontSize: 13, cursor: 'pointer' },
   danger: { background: '#ef4444', color: 'white', border: 0, borderRadius: 12, padding: '12px', fontWeight: 700, fontSize: 14, cursor: 'pointer' },
   muted: { fontSize: 12, color: '#9ca3af', lineHeight: 1.5, margin: 0 },
@@ -68,7 +69,15 @@ function Meter({ label, value }: { label: string; value: number }) {
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12, color: '#9ca3af' }}>
       <span style={{ width: 36 }}>{label}</span>
       <div style={{ flex: 1, height: 6, borderRadius: 99, background: 'rgba(255,255,255,0.08)', overflow: 'hidden' }}>
-        <div style={{ width: `${Math.round(value * 100)}%`, height: '100%', background: '#60a5fa', transition: 'width 0.1s linear' }} />
+        <div
+          style={{
+            height: '100%',
+            background: '#60a5fa',
+            transformOrigin: 'left',
+            transform: `scaleX(${value.toFixed(2)})`,
+            transition: 'transform 100ms linear',
+          }}
+        />
       </div>
     </div>
   );

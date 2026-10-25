@@ -1,6 +1,6 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import type { ReactNode } from 'react'
 
 type RevealProps = {
@@ -21,14 +21,19 @@ const OFFSETS: Record<NonNullable<RevealProps['direction']>, { x: number; y: num
 
 export function Reveal({ children, delay = 0, direction = 'up', className }: RevealProps) {
   const offset = OFFSETS[direction]
+  // Reduced motion: fade only, no travel.
+  const reduce = useReducedMotion()
+  const from = reduce ? 'translate(0px, 0px)' : `translate(${offset.x}px, ${offset.y}px)`
 
   return (
     <motion.div
       className={className}
-      initial={{ opacity: 0, x: offset.x, y: offset.y }}
-      whileInView={{ opacity: 1, x: 0, y: 0 }}
+      // Full transform strings stay hardware-accelerated; x/y shorthands run on
+      // the main thread and stutter while the page is still loading.
+      initial={{ opacity: 0, transform: from }}
+      whileInView={{ opacity: 1, transform: 'translate(0px, 0px)' }}
       viewport={{ once: true, margin: '-80px' }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] as const }}
+      transition={{ duration: 0.6, delay, ease: [0.23, 1, 0.32, 1] as const }}
     >
       {children}
     </motion.div>

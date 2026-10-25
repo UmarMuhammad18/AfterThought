@@ -48,7 +48,7 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
     .join(' · ')
 
   return (
-    <article className="glass group relative flex flex-col gap-4 rounded-2xl p-5 transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/30 hover:neon-glow">
+    <article className="lift glass group relative flex flex-col gap-4 rounded-2xl p-5 transition-[translate,border-color,box-shadow] duration-200 ease-snappy hover:-translate-y-0.5 hover:border-primary/30 hover:neon-glow">
       <div className="flex items-start justify-between gap-3">
         <span className="rounded-full border border-glass-border bg-glass px-2.5 py-1 text-xs font-medium text-muted-foreground">
           {label}
@@ -97,7 +97,7 @@ export function MeetingCard({ meeting }: { meeting: Meeting }) {
         <Link
           href={`/meeting/${meeting.id}`}
           className={cn(
-            'inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary transition-all hover:bg-primary/20',
+            'pressable inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/10 px-3 py-2 text-sm font-medium text-primary hover:bg-primary/20',
           )}
         >
           View Summary

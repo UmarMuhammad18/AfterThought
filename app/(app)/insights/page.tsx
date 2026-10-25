@@ -39,7 +39,7 @@ export default function InsightsPage() {
           Insights appear once you&apos;ve recorded a few conversations — topics, decisions and who speaks most,
           across all of them.
         </p>
-        <Link href="/record" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+        <Link href="/record" className="pressable rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
           Record your first call
         </Link>
       </div>

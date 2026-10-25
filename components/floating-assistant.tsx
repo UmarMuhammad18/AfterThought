@@ -60,13 +60,13 @@ export function FloatingAssistant() {
 
   return (
     <div
-      className="fixed bottom-6 right-6 z-50 flex flex-col items-end"
+      className="fixed bottom-[max(1.5rem,env(safe-area-inset-bottom))] right-[max(1.5rem,env(safe-area-inset-right))] z-50 flex flex-col items-end"
       style={{ transform: `translate(${pos.x}px, ${pos.y}px)` }}
     >
       {/* Expanded panel */}
       <div
         className={cn(
-          'glass-neon mb-3 w-[min(90vw,22rem)] origin-bottom-right overflow-hidden rounded-2xl transition-all duration-300',
+          'glass-neon mb-3 w-[min(90vw,22rem)] origin-bottom-right overflow-hidden rounded-2xl transition-[opacity,scale,translate] duration-200 ease-snappy motion-reduce:transition-opacity',
           open
             ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
             : 'pointer-events-none translate-y-3 scale-95 opacity-0',
@@ -112,7 +112,7 @@ export function FloatingAssistant() {
           )}
           <Link
             href="/record"
-            className="flex w-fit items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3 py-2 text-sm text-foreground hover:text-primary"
+            className="pressable flex w-fit items-center gap-2 rounded-xl border border-glass-border bg-secondary px-3 py-2 text-sm text-foreground hover:text-primary"
           >
             <Mic className="size-4" /> Record now
           </Link>
@@ -148,7 +148,7 @@ export function FloatingAssistant() {
         onPointerUp={onPointerUp}
         aria-label={open ? 'Close assistant' : 'Open AI assistant'}
         className={cn(
-          'glass-neon group relative grid size-14 cursor-grab touch-none place-items-center rounded-full transition-all hover:scale-105 active:cursor-grabbing',
+          'glass-neon group relative grid size-14 cursor-grab touch-none place-items-center rounded-full hover:scale-105 active:cursor-grabbing',
           !open && 'neon-glow',
         )}
       >

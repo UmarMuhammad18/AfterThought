@@ -10,7 +10,7 @@ export default function AppLayout({
   return (
     <>
       <TopNav />
-      <main className="mx-auto w-full max-w-7xl px-4 pb-24 pt-24 sm:px-6 lg:px-8">
+      <main className="mx-auto w-full max-w-7xl px-4 pb-[calc(6rem+env(safe-area-inset-bottom))] pt-[calc(6rem+env(safe-area-inset-top))] sm:px-6 lg:px-8">
         <AuthGate>{children}</AuthGate>
       </main>
       <FloatingAssistant />

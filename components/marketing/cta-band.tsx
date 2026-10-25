@@ -17,14 +17,14 @@ export function CtaBand() {
           <div className="flex flex-col items-center gap-3 sm:flex-row">
             <Link
               href="/sign-in"
-              className="neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="pressable neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               Get Started
               <ArrowRight className="size-4" />
             </Link>
             <a
               href="#"
-              className="flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
+              className="pressable flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
             >
               <Puzzle className="size-4" />
               Install Extension

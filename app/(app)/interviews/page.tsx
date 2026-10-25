@@ -304,7 +304,7 @@ function InviteRow({
 
       <div className="flex flex-wrap gap-2">
         {invite.meeting_id && (
-          <Link href={`/meeting/${invite.meeting_id}`} className="flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-sm text-primary-foreground">
+          <Link href={`/meeting/${invite.meeting_id}`} className="pressable flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-sm text-primary-foreground">
             {invite.status === 'completed' ? 'View scorecard' : 'View so far'} <ArrowRight className="size-3.5" />
           </Link>
         )}

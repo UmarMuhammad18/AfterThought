@@ -28,7 +28,7 @@ export function SearchBar({
         onSubmit?.(String(data.get('q') ?? value ?? ''))
       }}
       className={cn(
-        'glass-neon group flex items-center gap-3 rounded-2xl transition-all focus-within:neon-glow',
+        'glass-neon group flex items-center gap-3 rounded-2xl transition-shadow duration-200 focus-within:neon-glow',
         size === 'lg' ? 'h-16 px-5' : 'h-12 px-4',
         className,
       )}

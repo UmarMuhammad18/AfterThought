@@ -74,7 +74,7 @@ export default function SpeakersPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {speakers.length > 0 ? (
             speakers.map((speaker) => (
-              <Link key={speaker.id} href={`/speakers/${speaker.id}`} className="glass group rounded-2xl p-5 hover:border-primary/30 hover:-translate-y-0.5 transition-all">
+              <Link key={speaker.id} href={`/speakers/${speaker.id}`} className="lift glass group rounded-2xl p-5 transition-[translate,border-color] duration-200 ease-snappy hover:-translate-y-0.5 hover:border-primary/30">
                 <div className="flex items-center justify-between mb-4">
                   <span className="grid size-10 place-items-center rounded-full bg-secondary font-semibold text-secondary-foreground border border-glass-border">
                     {speaker.name.substring(0, 2).toUpperCase()}

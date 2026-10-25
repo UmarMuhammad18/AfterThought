@@ -19,10 +19,10 @@ export function MarketingNav() {
 
   return (
     <motion.header
-      initial={{ opacity: 0, y: -16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: 'easeOut' }}
-      className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6"
+      initial={{ opacity: 0, transform: 'translateY(-16px)' }}
+      animate={{ opacity: 1, transform: 'translateY(0px)' }}
+      transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+      className="fixed inset-x-0 top-0 z-50 px-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6"
     >
       <nav className="glass mx-auto flex w-full max-w-6xl items-center justify-between rounded-2xl px-4 py-3 sm:px-6">
         <Link href="/" className="flex items-center gap-2.5">
@@ -50,7 +50,7 @@ export function MarketingNav() {
           {user ? (
             <Link
               href="/dashboard"
-              className="flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+              className="pressable flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
             >
               <LayoutDashboard className="size-4" />
               Dashboard
@@ -59,13 +59,13 @@ export function MarketingNav() {
             <>
               <Link
                 href="/sign-in"
-                className="rounded-xl border border-glass-border px-4 py-2 text-sm text-foreground transition-colors hover:text-primary"
+                className="pressable rounded-xl border border-glass-border px-4 py-2 text-sm text-foreground transition-colors hover:text-primary"
               >
                 Sign In
               </Link>
               <Link
                 href="/sign-up"
-                className="rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
+                className="pressable rounded-xl bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
               >
                 Sign Up
               </Link>
@@ -86,8 +86,10 @@ export function MarketingNav() {
 
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0, transform: 'translateY(-8px) scale(0.98)' }}
+          animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+          style={{ transformOrigin: 'top right' }}
           className="glass mx-auto mt-2 flex w-full max-w-6xl flex-col gap-1 rounded-2xl p-3 md:hidden"
         >
           {LINKS.map((link) => (

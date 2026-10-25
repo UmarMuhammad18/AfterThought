@@ -496,7 +496,7 @@ function FollowUpEmail({ meetingId }: { meetingId: string }) {
           <textarea value={email.body} onChange={(e) => setEmail({ ...email, body: e.target.value })} rows={8} className="rounded-xl border border-glass-border bg-secondary px-3 py-2 text-sm text-foreground" />
           <a
             href={`mailto:?subject=${encodeURIComponent(email.subject)}&body=${encodeURIComponent(email.body)}`}
-            className="flex w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground"
+            className="pressable flex w-fit items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm text-primary-foreground"
           >
             <Send className="size-4" /> Open in mail app
           </a>

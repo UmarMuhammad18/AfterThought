@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { ArrowRight, Puzzle, Sparkles, Mic, ListChecks, Users } from 'lucide-react'
 import { BrowserMock } from '@/components/marketing/browser-mock'
 
@@ -10,14 +10,16 @@ const container = {
   show: { transition: { staggerChildren: 0.12, delayChildren: 0.1 } },
 }
 
-const EASE = [0.22, 1, 0.36, 1] as const
+const EASE = [0.23, 1, 0.32, 1] as const
 
-const item = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: EASE } },
-}
+// Transform strings (not y) keep the entrance off the main thread during load.
+const itemVariants = (reduce: boolean) => ({
+  hidden: { opacity: 0, transform: reduce ? 'translateY(0px)' : 'translateY(20px)' },
+  show: { opacity: 1, transform: 'translateY(0px)', transition: { duration: 0.6, ease: EASE } },
+})
 
 export function Hero() {
+  const item = itemVariants(Boolean(useReducedMotion()))
   return (
     <section className="relative px-4 pt-36 pb-20 sm:px-6 sm:pt-44">
       <motion.div
@@ -53,14 +55,14 @@ export function Hero() {
         <motion.div variants={item} className="flex flex-col items-center gap-3 sm:flex-row">
           <Link
             href="/sign-in"
-            className="neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
+            className="pressable neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
           >
             Get Started
             <ArrowRight className="size-4" />
           </Link>
           <a
             href="#install"
-            className="flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
+            className="pressable flex items-center gap-2 rounded-xl border border-glass-border px-6 py-3 font-medium text-foreground transition-colors hover:text-primary"
           >
             <Puzzle className="size-4" />
             Install Extension
@@ -69,8 +71,8 @@ export function Hero() {
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 40, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        initial={{ opacity: 0, transform: 'translateY(40px) scale(0.98)' }}
+        animate={{ opacity: 1, transform: 'translateY(0px) scale(1)' }}
         transition={{ duration: 0.8, delay: 0.4, ease: EASE }}
         className="mx-auto mt-16 w-full max-w-5xl"
       >

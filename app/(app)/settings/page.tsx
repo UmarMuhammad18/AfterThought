@@ -81,7 +81,7 @@ function WhatsAppCard() {
                 {code.botNumber ? `+${code.botNumber}` : 'the AfterThought WhatsApp number'} within 15 minutes.
               </span>
               {code.waLink && (
-                <a href={code.waLink} target="_blank" rel="noreferrer" className="w-fit rounded-xl bg-primary px-4 py-2 font-medium text-primary-foreground">
+                <a href={code.waLink} target="_blank" rel="noreferrer" className="pressable w-fit rounded-xl bg-primary px-4 py-2 font-medium text-primary-foreground">
                   Open WhatsApp
                 </a>
               )}

@@ -97,8 +97,8 @@ async function main() {
     },
     onError: showError,
     onLevels: ({ mic, system }) => {
-      micBar.style.width = `${Math.round(mic * 100)}%`
-      tabBar.style.width = `${Math.round(system * 100)}%`
+      micBar.style.transform = `scaleX(${mic.toFixed(2)})`
+      tabBar.style.transform = `scaleX(${system.toFixed(2)})`
     },
   })
 

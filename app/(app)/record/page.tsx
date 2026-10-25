@@ -495,7 +495,10 @@ function Meter({ label, value }: { label: string; value: number }) {
     <div className="flex items-center gap-3 text-xs text-muted-foreground">
       <span className="w-10">{label}</span>
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-secondary">
-        <div className="h-full rounded-full bg-primary transition-[width] duration-100" style={{ width: `${Math.round(value * 100)}%` }} />
+        <div
+          className="h-full origin-left rounded-full bg-primary transition-transform duration-100 ease-linear"
+          style={{ transform: `scaleX(${value.toFixed(2)})` }}
+        />
       </div>
     </div>
   )

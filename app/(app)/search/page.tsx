@@ -105,7 +105,7 @@ export default function SearchPage() {
                 <Link
                   key={`${c.meetingId}-${index}`}
                   href={c.meetingId ? `/meeting/${c.meetingId}${c.start != null ? `?t=${Math.floor(c.start)}` : ''}` : '/dashboard'}
-                  className="glass group flex flex-col gap-2 rounded-2xl p-4 transition-all hover:border-primary/30"
+                  className="glass group flex flex-col gap-2 rounded-2xl p-4 transition-colors hover:border-primary/30"
                 >
                   <div className="flex items-center justify-between gap-3">
                     <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">

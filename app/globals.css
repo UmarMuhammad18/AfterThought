@@ -11,6 +11,12 @@
    ============================================================ */
 
 @theme inline {
+  /* Motion: strong custom curves (built-in CSS easings are too weak).
+     ease-snappy: enter/exit + press feedback; ease-move: on-screen movement. */
+  --ease-snappy: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-move: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+
   --font-heading: var(--font-geist-sans), 'Geist Fallback';
   --font-sans: var(--font-geist-sans), 'Geist Fallback';
   --font-mono: var(--font-geist-mono), 'Geist Mono Fallback';
@@ -151,17 +157,6 @@
   }
 }
 
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -40%);
-  }
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-}
-
 /* Custom scrollbar for transcript / panels */
 @layer utilities {
   .scroll-slim {
@@ -175,5 +170,60 @@
   .scroll-slim::-webkit-scrollbar-thumb {
     background: oklch(1 0 0 / 0.16);
     border-radius: 9999px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Native feel on phones and tablets. Unlayered on purpose: these must beat
+   Tailwind utilities (e.g. text-sm on inputs, transition-colors on buttons).
+   --------------------------------------------------------------------------- */
+html {
+  /* No grey flash on tap; every control has its own :active state below. */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  /* Pull-to-refresh would reload the page mid-recording. */
+  overscroll-behavior-y: none;
+}
+
+/* iOS zooms into inputs under 16px and never zooms back out. */
+@media (pointer: coarse) {
+  input,
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
+/* Controls: instant taps (no double-tap-zoom wait), no label selection on
+   long-press, and press feedback the moment a finger lands. */
+button,
+[role='button'],
+.pressable {
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+button:not(:disabled),
+.pressable {
+  transition-property: color, background-color, border-color, opacity, box-shadow, scale, translate;
+  transition-duration: 160ms;
+  transition-timing-function: var(--ease-snappy);
+}
+
+button:not(:disabled):active,
+.pressable:active {
+  scale: 0.97;
+}
+
+/* Reduced motion: keep fades and colour changes, drop movement. */
+@media (prefers-reduced-motion: reduce) {
+  button:not(:disabled):active,
+  .pressable:active {
+    scale: none;
+  }
+  .lift:hover {
+    translate: none;
   }
 }

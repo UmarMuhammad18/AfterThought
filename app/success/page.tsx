@@ -40,7 +40,7 @@ export default function SuccessPage() {
 
         <Link
           href="/dashboard"
-          className="neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
+          className="pressable neon-glow flex items-center gap-2 rounded-xl bg-primary px-6 py-3 font-medium text-primary-foreground transition-opacity hover:opacity-90"
         >
           Go to Dashboard
           <ArrowRight className="size-4" />

@@ -36,14 +36,14 @@ export function TopNav() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-4 sm:px-6 lg:px-8">
+    <header className="fixed inset-x-0 top-0 z-50 px-4 pt-[max(1rem,env(safe-area-inset-top))] sm:px-6 lg:px-8">
       <nav className="glass mx-auto flex h-14 w-full max-w-7xl items-center justify-between rounded-2xl px-3 sm:px-4">
         <Link href="/dashboard" className="flex shrink-0 items-center" aria-label="AfterThought dashboard">
           <BrandLogo />
         </Link>
 
         {showNav && (
-          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto sm:gap-1">
+          <div className="flex min-w-0 items-center gap-0.5 overflow-x-auto overscroll-x-contain [scrollbar-width:none] sm:gap-1 [&::-webkit-scrollbar]:hidden">
             {tabs.map((tab) => {
               const active = pathname.startsWith(tab.href)
               const Icon = tab.icon

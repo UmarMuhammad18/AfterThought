@@ -21,7 +21,12 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: 'dark',
+  // The app is dark-only, so one theme colour (the header background) is right.
   themeColor: '#0c0d12',
+  // Paint under the notch / home indicator; fixed UI pads itself with env(safe-area-inset-*).
+  viewportFit: 'cover',
+  // Android: the keyboard resizes the layout like on iOS.
+  interactiveWidget: 'resizes-content',
 }
 
 export default function RootLayout({

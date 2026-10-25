@@ -73,7 +73,7 @@ export default function DashboardPage() {
           <SearchBar size="lg" className="flex-1" />
           <Link
             href="/record"
-            className="flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            className="pressable flex items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
           >
             <Mic className="size-4" /> Record
           </Link>
@@ -120,7 +120,7 @@ export default function DashboardPage() {
         ) : meetings.length === 0 ? (
           <div className="glass flex flex-col items-center gap-3 rounded-2xl p-10 text-center">
             <p className="text-muted-foreground">Nothing recorded yet.</p>
-            <Link href="/record" className="rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
+            <Link href="/record" className="pressable rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground">
               Record your first conversation
             </Link>
           </div>

@@ -10,9 +10,9 @@ import { Team } from '@/components/marketing/team'
 import { CtaBand } from '@/components/marketing/cta-band'
 
 export const metadata: Metadata = {
-  title: 'AfterThought — Your AI-powered meeting memory',
+  title: 'AfterThought — record any call, remember everything',
   description:
-    'AfterThought records, transcribes, and organises every meeting automatically — searchable summaries, action items, and speaker insights powered by AI.',
+    'Record any call on any device — WhatsApp, Zoom, Meet, Teams, phone or in person — and get searchable transcripts, action items and interview scorecards.',
 }
 
 export default function HomePage() {
